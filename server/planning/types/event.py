@@ -1,0 +1,393 @@
+from enum import Enum, unique
+from typing import Annotated, Any
+from datetime import date, datetime
+
+from pydantic import Field
+
+from content_api.items.model import CVItem, ContentAPIItem
+
+from superdesk.utc import utcnow
+from superdesk.core.resources import fields, dataclass
+from superdesk.core.resources.validators import validate_data_relation_async
+
+from .base import PlanningResourceModel
+from .event_dates import EventDates, OccurStatus
+
+
+@dataclass
+class RelationshipItem:
+    broader: str | None = None
+    narrower: str | None = None
+    related: str | None = None
+
+
+@dataclass
+class PlanningSchedule:
+    scheduled: date
+
+
+@dataclass
+class CoverageStatus:
+    qcode: str
+    name: str
+
+
+@dataclass
+class KeywordQCodeName:
+    qcode: fields.Keyword
+    name: fields.Keyword
+
+
+class NameAnalyzed(str, fields.CustomStringField):
+    elastic_mapping = {
+        "type": "keyword",
+        "fields": {
+            "analyzed": {"type": "text", "analyzer": "html_field_analyzer"},
+        },
+    }
+
+
+class SlugLine(str, fields.CustomStringField):
+    elastic_mapping = {
+        "type": "string",
+        "fielddata": True,
+        "fields": {
+            "phrase": {
+                "type": "string",
+                "analyzer": "phrase_prefix_analyzer",
+                "fielddata": True,
+            },
+            "keyword": {
+                "type": "keyword",
+            },
+            "text": {"type": "string", "analyzer": "html_field_analyzer"},
+        },
+    }
+
+
+Translations = Annotated[
+    dict[str, Any],
+    fields.elastic_mapping(
+        {
+            "type": "object",
+            "dynamic": False,
+            "properties": {
+                "name": {
+                    "type": "object",
+                    "dynamic": True,
+                }
+            },
+        }
+    ),
+]
+
+
+@dataclass
+class Subject:
+    qcode: fields.Keyword
+    name: NameAnalyzed
+    scheme: fields.Keyword
+    translations: Translations | None = None
+
+
+@dataclass
+class EventLocation:
+    name: fields.TextWithKeyword
+    qcode: fields.Keyword | None = None
+    address: Annotated[dict | None, fields.dynamic_mapping()] = None
+    geo: str | None = None
+    location: fields.Geopoint | None = None
+
+
+@unique
+class WorkflowState(str, Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    INGESTED = "ingested"
+    SCHEDULED = "scheduled"
+    KILLED = "killed"
+    CANCELLED = "cancelled"
+    RESCHEDULED = "rescheduled"
+    POSTPONED = "postponed"
+    SPIKED = "spiked"
+
+
+@unique
+class PostStates(str, Enum):
+    USABLE = "usable"
+    CANCELLED = "cancelled"
+
+
+@unique
+class UpdateMethods(str, Enum):
+    UPDATE_SINGLE = "single"
+    UPDATE_FUTURE = "future"
+    UPDATE_ALL = "all"
+
+
+@unique
+class ContentState(str, Enum):
+    DRAFT = "draft"
+    INGESTED = "ingested"
+    ROUTED = "routed"
+    FETCHED = "fetched"
+    SUBMITTED = "submitted"
+    IN_PROGRESS = "in_progress"
+    SPIKED = "spiked"
+    PUBLISHED = "published"
+    KILLED = "killed"
+    CORRECTED = "corrected"
+    SCHEDULED = "scheduled"
+    RECALLED = "recalled"
+    UNPUBLISHED = "unpublished"
+    CORRECTION = "correction"
+    BEING_CORRECTED = "being_corrected"
+
+
+# HACK: ``index``. Temporal place for this indexes workaround
+CoveragesIndex = Annotated[
+    list,
+    fields.elastic_mapping(
+        {
+            "type": "nested",
+            "properties": {
+                "planning": {
+                    "type": "object",
+                    "dynamic": False,
+                    "properties": {
+                        "slugline": {
+                            "type": "string",
+                            "fields": {
+                                "phrase": {
+                                    "type": "string",
+                                    "analyzer": "phrase_prefix_analyzer",
+                                    "search_analyzer": "phrase_prefix_analyzer",
+                                }
+                            },
+                        },
+                    },
+                }
+            },
+        },
+    ),
+]
+
+RelatedEvents = Annotated[
+    list,
+    fields.elastic_mapping(
+        {
+            "type": "nested",
+            "properties": {
+                "_id": "keyword",
+                "recurrence_id": "keyword",
+                "link_type": "keyword",
+            },
+        }
+    ),
+]
+# HACK: end
+
+
+@dataclass
+class Translation:
+    # TODO-ASYNC: double check if these fields need to be required
+    field: fields.Keyword | None = None
+    language: fields.Keyword | None = None
+    value: SlugLine | None = None
+
+
+@dataclass
+class Place:
+    scheme: fields.Keyword | None = None
+    qcode: fields.Keyword | None = None
+    code: fields.Keyword | None = None
+    name: fields.Keyword | None = None
+    locality: fields.Keyword | None = None
+    state: fields.Keyword | None = None
+    country: fields.Keyword | None = None
+    world_region: fields.Keyword | None = None
+    locality_code: fields.Keyword | None = None
+    state_code: fields.Keyword | None = None
+    country_code: fields.Keyword | None = None
+    world_region_code: fields.Keyword | None = None
+    feature_class: fields.Keyword | None = None
+    location: fields.Geopoint | None = None
+    rel: fields.Keyword | None = None
+
+
+@dataclass
+class Coverage:
+    coverage_id: str
+    g2_content_type: str
+    news_coverage_status: str
+    scheduled: datetime
+    desk: str | None = None
+    user: Annotated[str | None, validate_data_relation_async("users")] = None
+    language: str | None = None
+    genre: str | None = None
+    slugline: str | None = None
+    headline: str | None = None
+    ednote: str | None = None
+    internal_note: str | None = None
+    priority: int | None = None
+
+
+@dataclass
+class EmbeddedPlanning:
+    planning_id: Annotated[str, validate_data_relation_async("planning")]
+    update_method: UpdateMethods | None = None
+    coverages: list[Coverage] | None = Field(default_factory=list)
+
+
+class EventResourceModel(PlanningResourceModel):
+    guid: fields.Keyword
+    unique_id: int | None = None
+    unique_name: fields.Keyword | None = None
+    version: int | None = None
+    ingest_id: fields.Keyword | None = None
+    recurrence_id: fields.Keyword | None = None
+
+    # This is used when recurring series are split
+    previous_recurrence_id: fields.Keyword | None = None
+
+    firstcreated: datetime = Field(default_factory=utcnow)
+    versioncreated: datetime = Field(default_factory=utcnow)
+
+    # Ingest Details
+    ingest_provider: Annotated[fields.ObjectId, validate_data_relation_async("ingest_providers")] = None
+    # The value is copied from the ingest_providers vocabulary
+    source: fields.Keyword | None = None
+    # This value is extracted from the ingest
+    original_source: fields.Keyword | None = None
+
+    ingest_provider_sequence: fields.Keyword | None = None
+    ingest_firstcreated: datetime = Field(default_factory=utcnow)
+    ingest_versioncreated: datetime = Field(default_factory=utcnow)
+    event_created: datetime = Field(default_factory=utcnow)
+    event_lastmodified: datetime = Field(default_factory=utcnow)
+
+    # Event Details
+    # NewsML-G2 Event properties See IPTC-G2-Implementation_Guide 15.2
+    name: str
+    definition_short: str | None = None
+    definition_long: str | None = None
+    internal_note: str | None = None
+    registration_details: str | None = None
+    invitation_details: str | None = None
+    accreditation_info: str | None = None
+    accreditation_deadline: datetime | None = None
+
+    # Reference can be used to hold for example a court case reference number
+    reference: str | None = None
+    anpa_category: list[CVItem] = Field(default_factory=list)
+    files: Annotated[list[fields.ObjectId], validate_data_relation_async("events_files")] = Field(default_factory=list)
+
+    relationships: RelationshipItem | None = None
+    links: list[str] = Field(default_factory=list)
+    priority: int | None = None
+
+    # NewsML-G2 Event properties See IPTC-G2-Implementation_Guide 15.4.3
+    dates: EventDates | None = None
+
+    # This is an extra field so that we can sort in the combined view of events and planning.
+    # It will store the dates.start of the event.
+    _planning_schedule: Annotated[list[PlanningSchedule], fields.nested_list()]
+
+    occur_status: OccurStatus | None = None
+    news_coverage_status: CoverageStatus | None = None
+    registration: str | None = None
+    access_status: KeywordQCodeName | None = None
+
+    # Content metadata
+    subject: list[Subject | None] = Field(default_factory=list)
+    slugline: SlugLine | None = None
+
+    # Item metadata
+    location: list[EventLocation | None] = Field(default_factory=list)
+    participant: list[KeywordQCodeName | None] = Field(default_factory=list)
+    participant_requirement: list[KeywordQCodeName | None] = Field(default_factory=list)
+    organizer: list[KeywordQCodeName | None] = Field(default_factory=list)
+    event_contact_info: Annotated[list[fields.ObjectId], validate_data_relation_async("contacts")]
+    language: fields.Keyword | None = None
+    languages: list[fields.Keyword] = Field(default_factory=list)
+
+    # These next two are for spiking/unspiking and purging events
+    state: WorkflowState = WorkflowState.DRAFT
+    expiry: datetime | None = None
+    expired: bool = False
+
+    # says if the event is for internal usage or posted
+    pubstatus: PostStates | None = None
+    lock_user: Annotated[fields.ObjectId, validate_data_relation_async("users")]
+    lock_time: datetime
+    lock_session: Annotated[fields.ObjectId, validate_data_relation_async("users")]
+    lock_action: fields.Keyword | None = None
+
+    # The update method used for recurring events
+    update_method: UpdateMethods | None = None
+
+    # Item type used by superdesk publishing
+    item_type: Annotated[fields.Keyword, Field(alias="type")] = "event"
+
+    # Named Calendars
+    calendars: list[KeywordQCodeName] | None = None
+
+    # The previous state the item was in before for example being spiked,
+    # when un-spiked it will revert to this state
+    revert_state: ContentState | None = None
+
+    # Used when duplicating/rescheduling of Events
+    duplicate_from: Annotated[str, validate_data_relation_async("events")] | None = None
+    duplicate_to: list[Annotated[str, validate_data_relation_async("events")]] = Field(default_factory=list)
+
+    reschedule_from: Annotated[str, validate_data_relation_async("events")] | None = None
+    reschedule_to: Annotated[str, validate_data_relation_async("events")] | None = None
+    _reschedule_from_schedule: datetime | None = None
+    place: list[Place] = Field(default_factory=list)
+    ednote: Annotated[str, fields.elastic_mapping({"analyzer": "html_field_analyzer"})] | None = None
+
+    # Reason (if any) for the current state (cancelled, postponed, rescheduled)
+    state_reason: str | None = None
+
+    # Datetime when a particular action (postpone, reschedule, cancel) took place
+    actioned_date: datetime | None = None
+    completed: bool = False
+    _time_to_be_confirmed: bool = False
+
+    # This is used if an Event is created from a Planning Item
+    # So that we can link the Planning item to this Event upon creation
+    _planning_item: Annotated[str | None, validate_data_relation_async("planning")] = None
+
+    # This is used when event creation was based on `events_template`
+    template: Annotated[str | None, validate_data_relation_async("events_template")] = None
+
+    # This is used when enhancing fetch items to add ids of associated Planning items
+    planning_ids: list[Annotated[str, validate_data_relation_async("planning")]] = Field(default_factory=list)
+
+    _type: str | None = None
+
+    # HACK: ``coverages`` and ``related_events``
+    # adds these fields to the Events elastic type. So when we're in the Events & Planning filter,
+    # we can send a query to both Event & Planning index without modifying the query.
+    # Otherwise elastic will raise an exception stating the field doesn't exist on the index
+    coverages: CoveragesIndex | None = None
+    related_events: RelatedEvents | None = None
+    # HACK: end. We'll try to move this hacks somewhere else
+
+    extra: Annotated[dict[str, Any], fields.elastic_mapping({"type": "object", "dynamic": True})] = Field(
+        default_factory=dict
+    )
+    translations: Annotated[list[Translation], fields.nested_list()]
+
+    # This is used from the EmbeddedCoverage form in the Event editor
+    # This list is NOT stored with the Event
+    embedded_planning: Annotated[list[EmbeddedPlanning], fields.not_indexed] = Field(default_factory=list)
+
+    # This is used to create new planning items from the event editor
+    # TODO-ASYNC: consider adding proper types instead of a dynamic dict
+    associated_plannings: Annotated[
+        list[dict[str, Any]], fields.elastic_mapping({"type": "object", "dynamic": True})
+    ] = Field(default_factory=list)
+
+    related_items: list[ContentAPIItem] = Field(default_factory=list)
+    failed_planned_ids: list[str] = Field(default_factory=list)

@@ -12,6 +12,10 @@ from typing import TypedDict, Dict, Any, Literal
 from datetime import datetime
 
 from .content_profiles import ContentFieldSchema, ContentFieldEditor, ContentProfile  # noqa
+from .base import PlanningResourceModel
+from .event import EventResourceModel
+
+__all__ = ["PlanningResourceModel", "EventResourceModel"]
 
 
 UPDATE_METHOD = Literal["single", "future", "all"]
