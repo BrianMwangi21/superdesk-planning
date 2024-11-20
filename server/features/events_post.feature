@@ -297,7 +297,7 @@ Feature: Events Post
             "headline": "test headline",
             "slugline": "test slugline",
             "planning_date": "2016-01-02",
-            "related_events": [{"_id": "#events._id#"}]
+            "event_item": "#events._id#"
         }
         """
         Then we get OK response
@@ -439,7 +439,7 @@ Feature: Events Post
             "headline": "test headline",
             "slugline": "test slugline",
             "planning_date": "2016-01-02",
-            "related_events": [{"_id": "#events._id#"}]
+            "event_item": "#events._id#"
         }
         """
         Then we get OK response
@@ -580,7 +580,7 @@ Feature: Events Post
             "headline": "test headline",
             "slugline": "test slugline",
             "planning_date": "2016-01-02",
-            "related_events": [{"_id": "#events._id#"}]
+            "event_item": "#events._id#"
         }
         """
         Then we get OK response
@@ -740,7 +740,7 @@ Feature: Events Post
         When we get "/planning/plan1"
         Then we get existing resource
         """
-        {"related_events": [{"_id": "#events._id#", "link_type": "primary"}]}
+        {"event_item": "#events._id#"}
         """
         When we post to "/events/post"
         """
@@ -763,9 +763,7 @@ Feature: Events Post
                 {
                     "item_id": "#planning._id#",
                     "published_item": {
-                        "related_events": [
-                            {"_id": "#events._id#", "link_type": "primary"}
-                        ]
+                        "event_item": "#events._id#"
                     }
                 },
                 {
@@ -801,7 +799,7 @@ Feature: Events Post
             "headline": "test headline1",
             "slugline": "test slugline",
             "planning_date": "2016-01-02",
-            "related_events": [{"_id": "#events._id#", "link_type": "primary"}]
+            "event_item": "#events._id#"
         }
         """
         Then we get OK response
@@ -868,7 +866,7 @@ Feature: Events Post
             "headline": "test headline1",
             "slugline": "test slugline",
             "planning_date": "2016-01-02",
-            "related_events": [{"_id": "#events._id#", "link_type": "primary"}]
+            "event_item": "#events._id#"
         }
         """
         Then we get OK response
@@ -949,7 +947,7 @@ Feature: Events Post
             "headline": "test headline1",
             "slugline": "test slugline",
             "planning_date": "2016-01-02",
-            "related_events": [{"_id": "#events._id#", "link_type": "primary"}]
+            "event_item": "#events._id#"
         }
         """
         Then we get OK response
@@ -1240,7 +1238,7 @@ Feature: Events Post
         "headline": "test headline",
         "guid": "123",
         "planning_date": "2029-11-22",
-        "related_events": [{"_id": "#EVENT1._id#", "link_type": "primary"}]
+        "event_item": "#EVENT1._id#"
     }]
     """
     Then we get OK response
@@ -1261,103 +1259,107 @@ Feature: Events Post
     """
 
     @auth
-    Scenario: Posting an Event will not post Planning item with secondary link
-        Given config update
-        """
-        {"PLANNING_EVENT_LINK_METHOD": "one_primary_many_secondary"}
-        """
-        # Configure auto-posting of primary linked Events
+    @vocabulary
+    Scenario: Unposting an event will not unpost planning based on config
         Given "planning_types"
         """
         [{
             "_id": "event",
             "name": "event",
-            "editor": {"related_plannings": {"enabled": true}},
-            "schema": {"related_plannings": {"planning_auto_publish": true}}
-        }]
-        """
-
-        # Create the Events and linked Planning items
-        When we post to "/events" with success
-        """
-        [{
-            "guid": "event1",
-            "name": "Event1",
-            "dates": {
-                "start": "2029-05-29T12:00:00+0000",
-                "end": "2029-05-29T14:00:00+0000",
-                "tz": "Australia/Sydney"
+            "schema": {
+                "related_plannings": {
+                    "planning_auto_publish": false,
+                    "cancel_plan_with_event": false
+                }
             }
         }]
         """
-        When we post to "/planning" with success
-        """
-        [{
-            "guid": "plan1",
-            "slugline": "test-plan",
-            "planning_date": "2029-05-29T12:00:00+0000",
-            "related_events": [{"_id": "event1", "link_type": "primary"}]
-        }, {
-            "guid": "plan2",
-            "slugline": "test-plan",
-            "planning_date": "2029-05-29T12:00:00+0000",
-            "related_events": [{"_id": "event1", "link_type": "secondary"}]
-        }]
-        """
-
-        # Post the Event, and make sure only the primary linked Planning is posted
-        When we post to "/events/post" with success
+        When we post to "events"
         """
         {
-            "event": "event1",
-            "etag": "#events._etag",
+            "name": "TestEvent",
+            "slugline": "TestEvent",
+            "dates": {
+                "start": "2029-11-21T12:00:00.000Z",
+                "end": "2029-11-21T14:00:00.000Z",
+                "tz": "Australia/Sydney"
+            }
+        }
+        """
+        When we post to "/planning"
+        """
+        {
+            "item_class": "item class value",
+            "headline": "test headline",
+            "slugline": "test slugline",
+            "planning_date": "2016-01-02",
+            "event_item": "#events._id#"
+        }
+        """
+        Then we get OK response
+        When we post to "/events/post"
+        """
+        {
+            "event": "#events._id#",
+            "etag": "#events._etag#",
             "pubstatus": "usable"
         }
         """
-        When we get "/events/event1"
-        Then we get existing resource
-        """
-        {"state": "scheduled", "pubstatus": "usable"}
-        """
-        When we get "/planning"
-        Then we get list with 2 items
-        """
-        {"_items": [
-            {"_id": "plan1", "state": "scheduled", "pubstatus": "usable"},
-            {"_id": "plan2", "state": "draft", "pubstatus": "__no_value__"}
-        ]}
-        """
-        Then we store "PLAN2" with 2 item
-
-        # Now post Plan2
-        When we post to "/planning/post" with success
+        Then we get OK response
+        When we post to "/planning/post"
         """
         {
-            "planning": "plan2",
-            "etag": "#PLAN2._etag",
+            "planning": "#planning._id#",
+            "etag": "#planning._etag#",
             "pubstatus": "usable"
         }
         """
-
-        # unpost the Event, and make sure only the primary linked Planning is modified
-        When we post to "/events/post" with success
+        Then we get OK response
+        When we post to "/events/post"
         """
         {
-            "event": "event1",
+            "event": "#events._id#",
             "etag": "#events._etag#",
             "pubstatus": "cancelled"
         }
         """
-        When we get "/events/event1"
+        Then we get OK response
+        When we get "events/#events._id#"
         Then we get existing resource
         """
-        {"state": "killed", "pubstatus": "cancelled"}
+        {
+            "state": "killed",
+            "pubstatus": "cancelled"
+        }
         """
-        When we get "/planning"
-        Then we get list with 2 items
+        When we get "planning/#planning._id#"
+        Then we get existing resource
         """
-        {"_items": [
-            {"_id": "plan1", "state": "killed", "pubstatus": "cancelled"},
-            {"_id": "plan2", "state": "scheduled", "pubstatus": "usable"}
-        ]}
+        {
+            "state": "scheduled",
+            "pubstatus": "usable"
+        }
         """
+        When we patch "/planning/#planning._id#"
+        """
+        {"headline": "Updated headline"}
+        """
+        Then we get OK response
+        When we post to "/planning/post"
+        """
+        {
+            "planning": "#planning._id#",
+            "etag": "#planning._etag#",
+            "pubstatus": "cancelled"
+        }
+        """
+        Then we get OK response
+        When we post to "/planning/post"
+        """
+        {
+            "planning": "#planning._id#",
+            "etag": "#planning._etag#",
+            "pubstatus": "usable"
+        }
+        """
+        Then we get OK response

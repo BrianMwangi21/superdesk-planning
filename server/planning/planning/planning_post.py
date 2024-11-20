@@ -8,22 +8,18 @@
 # AUTHORS and LICENSE files distributed with this source code, or
 # at https://www.sourcefabric.org/superdesk/license
 
-from typing import List
-from copy import deepcopy
-import logging
-
-from superdesk.flask import abort
-from superdesk.resource_fields import ID_FIELD
-from superdesk import get_resource_service
+from flask import abort
+from superdesk import get_resource_service, logger
 from superdesk.errors import SuperdeskApiError
 from superdesk.resource import Resource
 from superdesk.services import BaseService
 from superdesk.notification import push_notification
 from superdesk.utc import utcnow
+from copy import deepcopy
+import logging
 
-from planning.types import Planning, Event
-from .planning import PlanningResource
-from planning.utils import get_related_event_items_for_planning
+from eve.utils import config
+from planning.planning import PlanningResource
 from planning.common import (
     WORKFLOW_STATE,
     POST_STATE,
@@ -34,6 +30,7 @@ from planning.common import (
     get_version_item_for_post,
     get_contacts_from_item,
 )
+from planning.content_profiles.utils import is_cancel_planning_with_event_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +53,14 @@ class PlanningPostService(BaseService):
     def create(self, docs, **kwargs):
         ids = []
         assignments_to_delete = []
+        cancel_plan_with_event_enabled = is_cancel_planning_with_event_enabled()
         for doc in docs:
             plan = get_resource_service("planning").find_one(req=None, _id=doc["planning"])
-            related_events = get_related_event_items_for_planning(plan, "primary")
-            self.validate_item(plan, related_events, doc["pubstatus"])
+            event = None
+            if plan.get("event_item"):
+                event = get_resource_service("events").find_one(req=None, _id=plan.get("event_item"))
+
+            self.validate_item(plan, event, doc["pubstatus"], cancel_plan_with_event_enabled)
 
             if not plan:
                 abort(412)
@@ -68,11 +69,8 @@ class PlanningPostService(BaseService):
                 self.validate_related_item(plan)
 
             self.validate_post_state(doc["pubstatus"])
-
-            if doc["pubstatus"] == POST_STATE.USABLE:
-                for related_event in related_events:
-                    self.post_associated_event(related_event)
-
+            if event and doc["pubstatus"] == POST_STATE.USABLE:
+                self.post_associated_event(event)
             self.post_planning(plan, doc["pubstatus"], assignments_to_delete, **kwargs)
             ids.append(doc["planning"])
 
@@ -83,7 +81,7 @@ class PlanningPostService(BaseService):
         for doc in docs:
             push_notification(
                 "planning:posted",
-                item=str(doc.get(ID_FIELD) or doc.get("planning")),
+                item=str(doc.get(config.ID_FIELD) or doc.get("planning")),
                 etag=doc.get("_etag"),
                 pubstatus=doc.get("pubstatus"),
             )
@@ -95,9 +93,12 @@ class PlanningPostService(BaseService):
             abort(409)
 
     @staticmethod
-    def validate_item(doc: Planning, related_events: List[Event], new_post_status: str):
-        if new_post_status == POST_STATE.USABLE and any(
-            1 for e in related_events if e.get("pubstatus") == POST_STATE.CANCELLED
+    def validate_item(doc, event, new_post_status, cancel_plan_with_event_enabled):
+        if (
+            cancel_plan_with_event_enabled
+            and new_post_status == POST_STATE.USABLE
+            and event
+            and event.get("pubstatus") == POST_STATE.CANCELLED
         ):
             raise SuperdeskApiError(message="Can't post the planning item as event is already unposted/cancelled.")
 
@@ -131,7 +132,7 @@ class PlanningPostService(BaseService):
                 get_resource_service("events_post").post(
                     [
                         {
-                            "event": event[ID_FIELD],
+                            "event": event[config.ID_FIELD],
                             "etag": event["_etag"],
                             "update_method": update_method,
                             "pubstatus": "usable",

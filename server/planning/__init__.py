@@ -81,7 +81,7 @@ from planning.search.planning_autocomplete import init_app as init_planning_auto
 
 from .module import module  # noqa
 
-__version__ = "2.8.0-dev"
+__version__ = "2.8.2"
 
 _SERVER_PATH = os.path.dirname(os.path.realpath(__file__))
 
