@@ -453,6 +453,7 @@ class AssignmentsService(superdesk.Service):
             event["CLASS"] = "PUBLIC"
 
             # Use Event start and End time based on Config
+            app = get_current_app()
             if app.config.get("ASSIGNMENT_MAIL_ICAL_USE_EVENT_DATES") and event_item:
                 event_dates = event_item["dates"]
                 event["DTSTART"] = event_dates["start"].strftime("%Y%m%dT%H%M%SZ")
@@ -585,9 +586,11 @@ class AssignmentsService(superdesk.Service):
                         # it is being reassigned by someone else so notify both the new assignee and the old
                         PlanningNotifications().notify_assignment(
                             target_user=original.get("assigned_to").get("user"),
-                            target_desk=original.get("assigned_to").get("desk")
-                            if original.get("assigned_to").get("user") is None
-                            else None,
+                            target_desk=(
+                                original.get("assigned_to").get("desk")
+                                if original.get("assigned_to").get("user") is None
+                                else None
+                            ),
                             message="assignment_reassigned_3_msg",
                             meta_message=meta_msg,
                             coverage_type=get_coverage_type_name(coverage_type),
@@ -643,9 +646,11 @@ class AssignmentsService(superdesk.Service):
                         slugline=slugline,
                         client_url=client_url,
                         assignment_id=assignment_id,
-                        assignor="by " + user.get("display_name", "")
-                        if str(user.get(ID_FIELD, None)) != assigned_to.get("user", "")
-                        else "to yourself",
+                        assignor=(
+                            "by " + user.get("display_name", "")
+                            if str(user.get(ID_FIELD, None)) != assigned_to.get("user", "")
+                            else "to yourself"
+                        ),
                         assignment=assignment,
                         event=event_item,
                         omit_user=True,
@@ -768,9 +773,11 @@ class AssignmentsService(superdesk.Service):
             target_user=assigned_to.get("user"),
             target_desk=assigned_to.get("desk") if not assigned_to.get("user") else None,
             message="assignment_cancelled_desk_msg",
-            user=user.get("display_name", "Unknown")
-            if str(user.get(ID_FIELD, None)) != assigned_to.get("user")
-            else "You",
+            user=(
+                user.get("display_name", "Unknown")
+                if str(user.get(ID_FIELD, None)) != assigned_to.get("user")
+                else "You"
+            ),
             omit_user=True,
             slugline=slugline,
             desk=desk.get("name"),
