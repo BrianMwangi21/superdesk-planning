@@ -8,6 +8,6 @@ class TestCase(_TestCase):
     def setUp(self):
         config = {"INSTALLED_APPS": ["planning"]}
         update_config(config)
-        self.app = get_app(config)
-        setup.app = self.app
+        # self.app = get_app(config)
+        # setup.app = self.app
         super().setUp()

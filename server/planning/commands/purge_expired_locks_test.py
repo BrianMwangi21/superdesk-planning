@@ -24,8 +24,8 @@ assignment_2_id = ObjectId()
 
 # TODO: Add Assignments
 class PurgeExpiredLocksTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
+    async def asyncSetUp(self) -> None:
+        await super().asyncSetUp()
         self.app.data.insert(
             "events",
             [
@@ -116,67 +116,72 @@ class PurgeExpiredLocksTest(TestCase):
                 self.assertIsNone(item.get("lock_time"), f"{resource} item {item_id} is locked, item={item}")
                 self.assertIsNone(item.get("lock_action"), f"{resource} item {item_id} is locked, item={item}")
 
-    def test_purge_event_locks(self):
-        PurgeExpiredLocks().run("events")
-        self.assertLockState(
-            [
-                ("events", "active_event_1", True),
-                ("events", "expired_event_1", False),
-                ("planning", "active_plan_1", True),
-                ("planning", "expired_plan_1", True),
-                ("assignments", assignment_1_id, True),
-                ("assignments", assignment_2_id, True),
-            ]
-        )
+    async def test_purge_event_locks(self):
+        async with self.app.app_context():
+            PurgeExpiredLocks().run("events")
+            self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", False),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", True),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, True),
+                ]
+            )
 
-    def test_purge_planning_locks(self):
-        PurgeExpiredLocks().run("planning")
-        self.assertLockState(
-            [
-                ("events", "active_event_1", True),
-                ("events", "expired_event_1", True),
-                ("planning", "active_plan_1", True),
-                ("planning", "expired_plan_1", False),
-                ("assignments", assignment_1_id, True),
-                ("assignments", assignment_2_id, True),
-            ]
-        )
+    async def test_purge_planning_locks(self):
+        async with self.app.app_context():
+            PurgeExpiredLocks().run("planning")
+            self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", True),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", False),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, True),
+                ]
+            )
 
-    def test_purge_assignment_locks(self):
-        PurgeExpiredLocks().run("assignments")
-        self.assertLockState(
-            [
-                ("events", "active_event_1", True),
-                ("events", "expired_event_1", True),
-                ("planning", "active_plan_1", True),
-                ("planning", "expired_plan_1", True),
-                ("assignments", assignment_1_id, True),
-                ("assignments", assignment_2_id, False),
-            ]
-        )
+    async def test_purge_assignment_locks(self):
+        async with self.app.app_context():
+            PurgeExpiredLocks().run("assignments")
+            self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", True),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", True),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, False),
+                ]
+            )
 
-    def test_purge_all_locks(self):
-        PurgeExpiredLocks().run("all")
-        self.assertLockState(
-            [
-                ("events", "active_event_1", True),
-                ("events", "expired_event_1", False),
-                ("planning", "active_plan_1", True),
-                ("planning", "expired_plan_1", False),
-                ("assignments", assignment_1_id, True),
-                ("assignments", assignment_2_id, False),
-            ]
-        )
+    async def test_purge_all_locks(self):
+        async with self.app.app_context():
+            PurgeExpiredLocks().run("all")
+            self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", False),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", False),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, False),
+                ]
+            )
 
-    def test_purge_all_locks_with_custom_expiry(self):
-        PurgeExpiredLocks().run("all", 2)
-        self.assertLockState(
-            [
-                ("events", "active_event_1", False),
-                ("events", "expired_event_1", False),
-                ("planning", "active_plan_1", False),
-                ("planning", "expired_plan_1", False),
-                ("assignments", assignment_1_id, False),
-                ("assignments", assignment_2_id, False),
-            ]
-        )
+    async def test_purge_all_locks_with_custom_expiry(self):
+        async with self.app.app_context():
+            PurgeExpiredLocks().run("all", 2)
+            self.assertLockState(
+                [
+                    ("events", "active_event_1", False),
+                    ("events", "expired_event_1", False),
+                    ("planning", "active_plan_1", False),
+                    ("planning", "expired_plan_1", False),
+                    ("assignments", assignment_1_id, False),
+                    ("assignments", assignment_2_id, False),
+                ]
+            )

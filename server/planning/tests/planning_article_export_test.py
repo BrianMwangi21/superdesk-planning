@@ -48,8 +48,8 @@ class PlanningArticleExportTest(TestCase):
         },
     ]
 
-    def test_get_items_in_supplied_order(self):
-        with self.app.app_context():
+    async def test_get_items_in_supplied_order(self):
+        async with self.app.app_context():
             self.app.data.insert("planning", self.planning_items)
             self.app.data.insert("events", self.event_items)
 

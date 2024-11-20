@@ -35,8 +35,8 @@ def to_local(date_str):
 
 
 class ExportScheduledFiltersTestCase(TestCase):
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
         self.app.config["DEFAULT_TIMEZONE"] = "Australia/Sydney"
         self.app.config["ADMINS"] = ["superdesk@test.com"]
 

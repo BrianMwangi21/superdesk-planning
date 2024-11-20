@@ -27,8 +27,8 @@ class IcsTwoFeedParserTestCase(TestCase):
         }
     ]
 
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
         self.app.data.insert("vocabularies", self.vocab)
         dir_path = os.path.dirname(os.path.realpath(__file__))
         calendar = open(os.path.join(dir_path, "events.ics"))
@@ -37,17 +37,17 @@ class IcsTwoFeedParserTestCase(TestCase):
     def test_event_ical_feed_parser_can_parse(self):
         self.assertEqual(True, IcsTwoFeedParser().can_parse(self.calendar))
 
-    def test_event_ical_feed_parser_parse(self):
-        with self.app.app_context():
+    async def test_event_ical_feed_parser_parse(self):
+        async with self.app.app_context():
             events = IcsTwoFeedParser().parse(self.calendar)
             self.assertTrue(len(events) >= 2)
 
     @mock.patch("planning.feed_parsers.ics_2_0.utcnow", mock_utcnow)
-    def test_parl_ical(self):
+    async def test_parl_ical(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         calendar = open(os.path.join(dir_path, "parl_cal.ics"))
         self.calendar = Calendar.from_ical(calendar.read())
-        with self.app.app_context():
+        async with self.app.app_context():
             events = IcsTwoFeedParser().parse(self.calendar)
             self.assertTrue(len(events) >= 2)
             self.assertEqual(
@@ -60,11 +60,11 @@ class IcsTwoFeedParserTestCase(TestCase):
             )
 
     @mock.patch("planning.feed_parsers.ics_2_0.utcnow", mock_utcnow)
-    def test_aus_timezone_parl_ical(self):
+    async def test_aus_timezone_parl_ical(self):
         dir_path = os.path.dirname(os.path.realpath(__file__))
         calendar = open(os.path.join(dir_path, "parl_cal.ics"))
         self.calendar = Calendar.from_ical(calendar.read())
-        with self.app.app_context():
+        async with self.app.app_context():
             self.app.config["DEFAULT_TIMEZONE"] = "Australia/Sydney"
             events = IcsTwoFeedParser().parse(self.calendar)
             self.assertTrue(len(events) >= 2)

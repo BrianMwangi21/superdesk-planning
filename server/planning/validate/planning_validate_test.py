@@ -13,8 +13,8 @@ from superdesk import get_resource_service
 
 
 class PlanningValidateServiceTest(TestCase):
-    def test_validate_on_post(self):
-        with self.app.app_context():
+    async def test_validate_on_post(self):
+        async with self.app.app_context():
             self.app.data.insert(
                 "planning_types",
                 [

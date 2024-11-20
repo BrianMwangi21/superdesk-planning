@@ -217,8 +217,8 @@ class ExportToNewsroomTest(TestCase):
         self.planning_service.create(planning)
 
     @mock.patch("planning.commands.export_to_newsroom.NewsroomHTTPTransmitter")
-    def test_events_events_planning(self, mock_transmitter):
-        with self.app.app_context():
+    async def test_events_events_planning(self, mock_transmitter):
+        async with self.app.app_context():
             self.setUp_data()
 
             mock_transmitter.return_value = MockTransmitter()
