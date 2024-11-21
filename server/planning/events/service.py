@@ -1,6 +1,6 @@
 from planning.types import EventResourceModel
-from planning.core.service import PlanningAsyncResourceService
+from planning.core.service import BasePlanningAsyncService
 
 
-class EventsAsyncService(PlanningAsyncResourceService[EventResourceModel]):
+class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
     resource_name = "events"

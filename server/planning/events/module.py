@@ -5,8 +5,8 @@ from superdesk.core.resources import (
     ElasticResourceConfig,
 )
 
-from planning.events import EventsAsyncService
 from planning.types import EventResourceModel
+from .service import EventsAsyncService
 
 events_resource_config = ResourceConfig(
     name="events",

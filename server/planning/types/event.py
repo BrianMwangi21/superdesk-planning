@@ -1,41 +1,17 @@
-from enum import Enum, unique
-from typing import Annotated, Any
-from datetime import date, datetime
-
 from pydantic import Field
+from datetime import datetime
+from typing import Annotated, Any
 
-from content_api.items.model import CVItem, ContentAPIItem
+from content_api.items.model import CVItem, ContentAPIItem, Place
 
 from superdesk.utc import utcnow
 from superdesk.core.resources import fields, dataclass
 from superdesk.core.resources.validators import validate_data_relation_async
 
-from .base import PlanningResourceModel
+from .base import BasePlanningModel
 from .event_dates import EventDates, OccurStatus
-
-
-@dataclass
-class RelationshipItem:
-    broader: str | None = None
-    narrower: str | None = None
-    related: str | None = None
-
-
-@dataclass
-class PlanningSchedule:
-    scheduled: date
-
-
-@dataclass
-class CoverageStatus:
-    qcode: str
-    name: str
-
-
-@dataclass
-class KeywordQCodeName:
-    qcode: fields.Keyword
-    name: fields.Keyword
+from .enums import ContentState, PostStates, UpdateMethods, WorkflowState
+from .common import CoverageStatus, KeywordQCodeName, PlanningSchedule, RelationshipItem, Subject
 
 
 class NameAnalyzed(str, fields.CustomStringField):
@@ -65,83 +41,13 @@ class SlugLine(str, fields.CustomStringField):
     }
 
 
-Translations = Annotated[
-    dict[str, Any],
-    fields.elastic_mapping(
-        {
-            "type": "object",
-            "dynamic": False,
-            "properties": {
-                "name": {
-                    "type": "object",
-                    "dynamic": True,
-                }
-            },
-        }
-    ),
-]
-
-
-@dataclass
-class Subject:
-    qcode: fields.Keyword
-    name: NameAnalyzed
-    scheme: fields.Keyword
-    translations: Translations | None = None
-
-
 @dataclass
 class EventLocation:
     name: fields.TextWithKeyword
     qcode: fields.Keyword | None = None
-    address: Annotated[dict | None, fields.dynamic_mapping()] = None
+    address: Annotated[dict[str, None] | None, fields.dynamic_mapping()] = None
     geo: str | None = None
     location: fields.Geopoint | None = None
-
-
-@unique
-class WorkflowState(str, Enum):
-    DRAFT = "draft"
-    ACTIVE = "active"
-    INGESTED = "ingested"
-    SCHEDULED = "scheduled"
-    KILLED = "killed"
-    CANCELLED = "cancelled"
-    RESCHEDULED = "rescheduled"
-    POSTPONED = "postponed"
-    SPIKED = "spiked"
-
-
-@unique
-class PostStates(str, Enum):
-    USABLE = "usable"
-    CANCELLED = "cancelled"
-
-
-@unique
-class UpdateMethods(str, Enum):
-    UPDATE_SINGLE = "single"
-    UPDATE_FUTURE = "future"
-    UPDATE_ALL = "all"
-
-
-@unique
-class ContentState(str, Enum):
-    DRAFT = "draft"
-    INGESTED = "ingested"
-    ROUTED = "routed"
-    FETCHED = "fetched"
-    SUBMITTED = "submitted"
-    IN_PROGRESS = "in_progress"
-    SPIKED = "spiked"
-    PUBLISHED = "published"
-    KILLED = "killed"
-    CORRECTED = "corrected"
-    SCHEDULED = "scheduled"
-    RECALLED = "recalled"
-    UNPUBLISHED = "unpublished"
-    CORRECTION = "correction"
-    BEING_CORRECTED = "being_corrected"
 
 
 # HACK: ``index``. Temporal place for this indexes workaround
@@ -173,7 +79,7 @@ CoveragesIndex = Annotated[
 ]
 
 RelatedEvents = Annotated[
-    list,
+    list[dict[str, Any]],
     fields.elastic_mapping(
         {
             "type": "nested",
@@ -190,29 +96,9 @@ RelatedEvents = Annotated[
 
 @dataclass
 class Translation:
-    # TODO-ASYNC: double check if these fields need to be required
     field: fields.Keyword | None = None
     language: fields.Keyword | None = None
     value: SlugLine | None = None
-
-
-@dataclass
-class Place:
-    scheme: fields.Keyword | None = None
-    qcode: fields.Keyword | None = None
-    code: fields.Keyword | None = None
-    name: fields.Keyword | None = None
-    locality: fields.Keyword | None = None
-    state: fields.Keyword | None = None
-    country: fields.Keyword | None = None
-    world_region: fields.Keyword | None = None
-    locality_code: fields.Keyword | None = None
-    state_code: fields.Keyword | None = None
-    country_code: fields.Keyword | None = None
-    world_region_code: fields.Keyword | None = None
-    feature_class: fields.Keyword | None = None
-    location: fields.Geopoint | None = None
-    rel: fields.Keyword | None = None
 
 
 @dataclass
@@ -239,7 +125,7 @@ class EmbeddedPlanning:
     coverages: list[Coverage] | None = Field(default_factory=list)
 
 
-class EventResourceModel(PlanningResourceModel):
+class EventResourceModel(BasePlanningModel):
     guid: fields.Keyword
     unique_id: int | None = None
     unique_name: fields.Keyword | None = None
