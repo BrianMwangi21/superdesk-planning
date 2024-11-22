@@ -88,3 +88,11 @@ class RelatedEvent:
     id: Annotated[str, validate_data_relation_async("events")] = Field(alias="_id")
     recurrence_id: str | None = None
     link_type: str | None = None
+
+
+@dataclass
+class PlanningCoverage:
+    coverage_id: str
+    planning: dict[str, Any]
+    assigned_to: dict[str, Any]
+    original_creator: str | None = None

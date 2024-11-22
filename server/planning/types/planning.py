@@ -10,7 +10,7 @@ from superdesk.core.resources.validators import validate_data_relation_async
 
 from .event import Translation
 from .base import BasePlanningModel
-from .common import RelatedEvent, Subject
+from .common import RelatedEvent, Subject, PlanningCoverage
 from .enums import PostStates, UpdateMethods, WorkflowState
 
 
@@ -20,20 +20,13 @@ class Flags:
     overide_auto_assign_to_workflow: bool = False
 
 
-@dataclass
-class PlanningCoverage:
-    coverage_id: str
-    planning: dict[str, Any]
-    assigned_to: dict[str, Any]
-    original_creator: str | None = None
-
-
 class PlanningResourceModel(BasePlanningModel):
     guid: fields.Keyword
     unique_id: fields.Keyword | None = None
 
     firstcreated: datetime = Field(default_factory=utcnow)
     versioncreated: datetime = Field(default_factory=utcnow)
+
     # Ingest Details
     ingest_provider: Annotated[fields.ObjectId, validate_data_relation_async("ingest_providers")] | None = None
     source: fields.Keyword | None = None
@@ -108,10 +101,13 @@ class PlanningResourceModel(BasePlanningModel):
 
     # Reason (if any) for the current state (cancelled, postponed, rescheduled)
     state_reason: str | None = None
-    _time_to_be_confirmed: bool = False
-    _type: str | None = None
+    time_to_be_confirmed: bool = Field(default=False, alias="_time_to_be_confirmed")
     extra: Annotated[dict[str, Any], fields.elastic_mapping({"type": "object", "dynamic": True})] = Field(
         default_factory=dict
     )
+
     versionposted: datetime | None = None
     update_method: UpdateMethods | None = None
+
+    # TODO-ASYNC: check why do we have `type` and `_type`
+    _type: str | None = None

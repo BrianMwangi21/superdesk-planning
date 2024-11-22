@@ -15,6 +15,16 @@ class WorkflowState(str, Enum):
 
 
 @unique
+class AssignmentWorkflowState(str, Enum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    RESCHEDULED = "rescheduled"
+    POSTPONED = "postponed"
+
+
+@unique
 class PostStates(str, Enum):
     USABLE = "usable"
     CANCELLED = "cancelled"

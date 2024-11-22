@@ -136,6 +136,7 @@ class EventResourceModel(BasePlanningModel):
     # This is used when recurring series are split
     previous_recurrence_id: fields.Keyword | None = None
 
+    # TODO-ASYNC: consider moving these two to the base model if it used everywhere
     firstcreated: datetime = Field(default_factory=utcnow)
     versioncreated: datetime = Field(default_factory=utcnow)
 
@@ -177,7 +178,9 @@ class EventResourceModel(BasePlanningModel):
 
     # This is an extra field so that we can sort in the combined view of events and planning.
     # It will store the dates.start of the event.
-    _planning_schedule: Annotated[list[PlanningSchedule], fields.nested_list()]
+    planning_schedule: Annotated[list[PlanningSchedule], fields.nested_list()] = Field(
+        alias="_planning_schedule", default_factory=list
+    )
 
     occur_status: OccurStatus | None = None
     news_coverage_status: CoverageStatus | None = None
@@ -228,7 +231,7 @@ class EventResourceModel(BasePlanningModel):
 
     reschedule_from: Annotated[str, validate_data_relation_async("events")] | None = None
     reschedule_to: Annotated[str, validate_data_relation_async("events")] | None = None
-    _reschedule_from_schedule: datetime | None = None
+    reschedule_from_schedule: datetime | None = Field(default=None, alias="_reschedule_from_schedule")
     place: list[Place] = Field(default_factory=list)
     ednote: Annotated[str, fields.elastic_mapping({"analyzer": "html_field_analyzer"})] | None = None
 
@@ -238,19 +241,19 @@ class EventResourceModel(BasePlanningModel):
     # Datetime when a particular action (postpone, reschedule, cancel) took place
     actioned_date: datetime | None = None
     completed: bool = False
-    _time_to_be_confirmed: bool = False
+    time_to_be_confirmed: bool = Field(default=False, alias="_time_to_be_confirmed")
 
     # This is used if an Event is created from a Planning Item
     # So that we can link the Planning item to this Event upon creation
-    _planning_item: Annotated[str | None, validate_data_relation_async("planning")] = None
+    planning_item: Annotated[str | None, validate_data_relation_async("planning")] = Field(
+        default=None, alias="_planning_item"
+    )
 
     # This is used when event creation was based on `events_template`
     template: Annotated[str | None, validate_data_relation_async("events_template")] = None
 
     # This is used when enhancing fetch items to add ids of associated Planning items
     planning_ids: list[Annotated[str, validate_data_relation_async("planning")]] = Field(default_factory=list)
-
-    _type: str | None = None
 
     # HACK: ``coverages`` and ``related_events``
     # adds these fields to the Events elastic type. So when we're in the Events & Planning filter,
@@ -277,3 +280,6 @@ class EventResourceModel(BasePlanningModel):
 
     related_items: list[ContentAPIItem] = Field(default_factory=list)
     failed_planned_ids: list[str] = Field(default_factory=list)
+
+    # TODO-ASYNC: check why do we have `type` and `_type`
+    _type: str | None = None
