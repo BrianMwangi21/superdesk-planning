@@ -18,6 +18,6 @@ pytest
 pytest-env
 black~=23.0
 
+superdesk-core @ git+https://github.com/superdesk/superdesk-core.git@async
+
 -e .
-# Install in editable state so we get feature fixtures
--e git+https://github.com/superdesk/superdesk-core.git@async
