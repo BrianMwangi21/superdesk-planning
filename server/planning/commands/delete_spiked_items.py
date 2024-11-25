@@ -19,6 +19,7 @@ from superdesk.utc import utcnow
 from superdesk.celery_task_utils import get_lock_id
 from superdesk.lock import lock, unlock, remove_locks
 from planning.common import WORKFLOW_STATE
+from planning.events import EventsAsyncService
 from .async_cli import planning_cli
 
 
@@ -74,11 +75,10 @@ async def delete_spiked_items_handler():
     remove_locks()
 
 
-# TODO: Update use of events_service to new async methods
 async def delete_spiked_events(expiry_datetime):
     log_msg = log_msg_context.get()
     logger.info(f"{log_msg} Starting to delete spiked events")
-    events_service = get_resource_service("events")
+    events_service = EventsAsyncService()
 
     events_deleted = set()
     series_to_delete = dict()
@@ -86,7 +86,7 @@ async def delete_spiked_events(expiry_datetime):
     # Obtain the full list of Events that we're to process first
     # As subsequent queries will change the list of returned items
     events = dict()
-    for items in events_service.get_expired_items(expiry_datetime, spiked_events_only=True):
+    async for items in events_service.get_expired_items(expiry_datetime, spiked_events_only=True):
         events.update({item[ID_FIELD]: item for item in items})
 
     for event_id, event in events.items():
