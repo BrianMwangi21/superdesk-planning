@@ -15,7 +15,7 @@ import time
 from collections import namedtuple
 from datetime import timedelta, datetime
 
-from superdesk.core import get_app_config
+from superdesk.core import get_app_config, get_current_app
 from superdesk.resource_fields import ID_FIELD, VERSION
 from superdesk.resource import not_analyzed, build_custom_hateoas
 from superdesk import get_resource_service, logger
@@ -248,7 +248,7 @@ def get_default_coverage_status_qcode_on_ingest():
 
 
 def get_config_planning_duplicate_retain_assignee_details(current_app=None):
-    return (current_app or app).config.get("PLANNING_DUPLICATE_RETAIN_ASSIGNEE_DETAILS", False)
+    return (current_app or get_current_app()).config.get("PLANNING_DUPLICATE_RETAIN_ASSIGNEE_DETAILS", False)
 
 
 def get_coverage_status_from_cv(qcode: str):
