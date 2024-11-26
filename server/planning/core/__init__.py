@@ -1,3 +1,3 @@
-from .service import PlanningAsyncResourceService
+from .service import BasePlanningAsyncService
 
-__all__ = ["PlanningAsyncResourceService"]
+__all__ = ["BasePlanningAsyncService"]

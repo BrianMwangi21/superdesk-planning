@@ -2,10 +2,10 @@ from eve.utils import date_to_str
 
 from planning.types import EventResourceModel
 from planning.common import get_max_recurrent_events, WORKFLOW_STATE
-from planning.core.service import PlanningAsyncResourceService
+from planning.core.service import BasePlanningAsyncService
 
 
-class EventsAsyncService(PlanningAsyncResourceService[EventResourceModel]):
+class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
     resource_name = "events"
 
     async def get_expired_items(self, expiry_datetime, spiked_events_only=False):

@@ -1,41 +1,17 @@
-from enum import Enum, unique
-from typing import Annotated, Any
-from datetime import date, datetime
-
 from pydantic import Field
+from datetime import datetime
+from typing import Annotated, Any
 
-from content_api.items.model import CVItem, ContentAPIItem
+from content_api.items.model import CVItem, ContentAPIItem, Place
 
 from superdesk.utc import utcnow
 from superdesk.core.resources import fields, dataclass
 from superdesk.core.resources.validators import validate_data_relation_async
 
-from .base import PlanningResourceModel
+from .base import BasePlanningModel
 from .event_dates import EventDates, OccurStatus
-
-
-@dataclass
-class RelationshipItem:
-    broader: str | None = None
-    narrower: str | None = None
-    related: str | None = None
-
-
-@dataclass
-class PlanningSchedule:
-    scheduled: date
-
-
-@dataclass
-class CoverageStatus:
-    qcode: str
-    name: str
-
-
-@dataclass
-class KeywordQCodeName:
-    qcode: fields.Keyword
-    name: fields.Keyword
+from .enums import ContentState, PostStates, UpdateMethods, WorkflowState
+from .common import CoverageStatus, KeywordQCodeName, PlanningSchedule, RelationshipItem, Subject
 
 
 class NameAnalyzed(str, fields.CustomStringField):
@@ -65,83 +41,13 @@ class SlugLine(str, fields.CustomStringField):
     }
 
 
-Translations = Annotated[
-    dict[str, Any],
-    fields.elastic_mapping(
-        {
-            "type": "object",
-            "dynamic": False,
-            "properties": {
-                "name": {
-                    "type": "object",
-                    "dynamic": True,
-                }
-            },
-        }
-    ),
-]
-
-
-@dataclass
-class Subject:
-    qcode: fields.Keyword
-    name: NameAnalyzed
-    scheme: fields.Keyword
-    translations: Translations | None = None
-
-
 @dataclass
 class EventLocation:
     name: fields.TextWithKeyword
     qcode: fields.Keyword | None = None
-    address: Annotated[dict | None, fields.dynamic_mapping()] = None
+    address: Annotated[dict[str, None] | None, fields.dynamic_mapping()] = None
     geo: str | None = None
     location: fields.Geopoint | None = None
-
-
-@unique
-class WorkflowState(str, Enum):
-    DRAFT = "draft"
-    ACTIVE = "active"
-    INGESTED = "ingested"
-    SCHEDULED = "scheduled"
-    KILLED = "killed"
-    CANCELLED = "cancelled"
-    RESCHEDULED = "rescheduled"
-    POSTPONED = "postponed"
-    SPIKED = "spiked"
-
-
-@unique
-class PostStates(str, Enum):
-    USABLE = "usable"
-    CANCELLED = "cancelled"
-
-
-@unique
-class UpdateMethods(str, Enum):
-    UPDATE_SINGLE = "single"
-    UPDATE_FUTURE = "future"
-    UPDATE_ALL = "all"
-
-
-@unique
-class ContentState(str, Enum):
-    DRAFT = "draft"
-    INGESTED = "ingested"
-    ROUTED = "routed"
-    FETCHED = "fetched"
-    SUBMITTED = "submitted"
-    IN_PROGRESS = "in_progress"
-    SPIKED = "spiked"
-    PUBLISHED = "published"
-    KILLED = "killed"
-    CORRECTED = "corrected"
-    SCHEDULED = "scheduled"
-    RECALLED = "recalled"
-    UNPUBLISHED = "unpublished"
-    CORRECTION = "correction"
-    BEING_CORRECTED = "being_corrected"
 
 
 # HACK: ``index``. Temporal place for this indexes workaround
@@ -173,7 +79,7 @@ CoveragesIndex = Annotated[
 ]
 
 RelatedEvents = Annotated[
-    list,
+    list[dict[str, Any]],
     fields.elastic_mapping(
         {
             "type": "nested",
@@ -190,29 +96,9 @@ RelatedEvents = Annotated[
 
 @dataclass
 class Translation:
-    # TODO-ASYNC: double check if these fields need to be required
     field: fields.Keyword | None = None
     language: fields.Keyword | None = None
     value: SlugLine | None = None
-
-
-@dataclass
-class Place:
-    scheme: fields.Keyword | None = None
-    qcode: fields.Keyword | None = None
-    code: fields.Keyword | None = None
-    name: fields.Keyword | None = None
-    locality: fields.Keyword | None = None
-    state: fields.Keyword | None = None
-    country: fields.Keyword | None = None
-    world_region: fields.Keyword | None = None
-    locality_code: fields.Keyword | None = None
-    state_code: fields.Keyword | None = None
-    country_code: fields.Keyword | None = None
-    world_region_code: fields.Keyword | None = None
-    feature_class: fields.Keyword | None = None
-    location: fields.Geopoint | None = None
-    rel: fields.Keyword | None = None
 
 
 @dataclass
@@ -239,7 +125,7 @@ class EmbeddedPlanning:
     coverages: list[Coverage] | None = Field(default_factory=list)
 
 
-class EventResourceModel(PlanningResourceModel):
+class EventResourceModel(BasePlanningModel):
     guid: fields.Keyword
     unique_id: int | None = None
     unique_name: fields.Keyword | None = None
@@ -250,6 +136,7 @@ class EventResourceModel(PlanningResourceModel):
     # This is used when recurring series are split
     previous_recurrence_id: fields.Keyword | None = None
 
+    # TODO-ASYNC: consider moving these two to the base model if it used everywhere
     firstcreated: datetime = Field(default_factory=utcnow)
     versioncreated: datetime = Field(default_factory=utcnow)
 
@@ -291,7 +178,9 @@ class EventResourceModel(PlanningResourceModel):
 
     # This is an extra field so that we can sort in the combined view of events and planning.
     # It will store the dates.start of the event.
-    _planning_schedule: Annotated[list[PlanningSchedule], fields.nested_list()]
+    planning_schedule: Annotated[list[PlanningSchedule], fields.nested_list()] = Field(
+        alias="_planning_schedule", default_factory=list
+    )
 
     occur_status: OccurStatus | None = None
     news_coverage_status: CoverageStatus | None = None
@@ -342,7 +231,7 @@ class EventResourceModel(PlanningResourceModel):
 
     reschedule_from: Annotated[str, validate_data_relation_async("events")] | None = None
     reschedule_to: Annotated[str, validate_data_relation_async("events")] | None = None
-    _reschedule_from_schedule: datetime | None = None
+    reschedule_from_schedule: datetime | None = Field(default=None, alias="_reschedule_from_schedule")
     place: list[Place] = Field(default_factory=list)
     ednote: Annotated[str, fields.elastic_mapping({"analyzer": "html_field_analyzer"})] | None = None
 
@@ -352,19 +241,19 @@ class EventResourceModel(PlanningResourceModel):
     # Datetime when a particular action (postpone, reschedule, cancel) took place
     actioned_date: datetime | None = None
     completed: bool = False
-    _time_to_be_confirmed: bool = False
+    time_to_be_confirmed: bool = Field(default=False, alias="_time_to_be_confirmed")
 
     # This is used if an Event is created from a Planning Item
     # So that we can link the Planning item to this Event upon creation
-    _planning_item: Annotated[str | None, validate_data_relation_async("planning")] = None
+    planning_item: Annotated[str | None, validate_data_relation_async("planning")] = Field(
+        default=None, alias="_planning_item"
+    )
 
     # This is used when event creation was based on `events_template`
     template: Annotated[str | None, validate_data_relation_async("events_template")] = None
 
     # This is used when enhancing fetch items to add ids of associated Planning items
     planning_ids: list[Annotated[str, validate_data_relation_async("planning")]] = Field(default_factory=list)
-
-    _type: str | None = None
 
     # HACK: ``coverages`` and ``related_events``
     # adds these fields to the Events elastic type. So when we're in the Events & Planning filter,
@@ -391,3 +280,6 @@ class EventResourceModel(PlanningResourceModel):
 
     related_items: list[ContentAPIItem] = Field(default_factory=list)
     failed_planned_ids: list[str] = Field(default_factory=list)
+
+    # TODO-ASYNC: check why do we have `type` and `_type`
+    _type: str | None = None

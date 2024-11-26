@@ -2,11 +2,11 @@ from typing import Generic, TypeVar
 
 from superdesk.core.resources.service import AsyncResourceService
 
-from planning.types import PlanningResourceModel
+from planning.types import BasePlanningModel
 
 
-PlanningResourceModelType = TypeVar("PlanningResourceModelType", bound=PlanningResourceModel)
+PlanningResourceModelType = TypeVar("PlanningResourceModelType", bound=BasePlanningModel)
 
 
-class PlanningAsyncResourceService(AsyncResourceService[Generic[PlanningResourceModelType]]):
+class BasePlanningAsyncService(AsyncResourceService[Generic[PlanningResourceModelType]]):
     pass
