@@ -20,8 +20,8 @@ from superdesk.celery_task_utils import get_lock_id
 from superdesk.lock import lock, unlock, remove_locks
 from planning.common import WORKFLOW_STATE
 from planning.events import EventsAsyncService
-from planning.planning.service import PlanningAsyncService
-from planning.assignments.service import AssingmentsAsyncService
+from planning.planning import PlanningAsyncService
+from planning.assignments import AssingmentsAsyncService
 from .async_cli import planning_cli
 
 
