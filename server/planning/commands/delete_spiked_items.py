@@ -13,13 +13,13 @@ from contextvars import ContextVar
 
 from superdesk.core import get_app_config
 from superdesk.resource_fields import ID_FIELD
-from superdesk import get_resource_service
 from superdesk.logging import logger
 from superdesk.utc import utcnow
 from superdesk.celery_task_utils import get_lock_id
 from superdesk.lock import lock, unlock, remove_locks
 from planning.common import WORKFLOW_STATE
 from planning.events import EventsAsyncService
+from planning.events.utils import get_recurring_timeline
 from planning.planning import PlanningAsyncService
 from planning.assignments import AssingmentsAsyncService
 from .async_cli import planning_cli
@@ -93,7 +93,7 @@ async def delete_spiked_events(expiry_datetime):
 
     for event_id, event in events.items():
         if event.get("recurrence_id") and event["recurrence_id"] not in series_to_delete:
-            spiked, events = is_series_expired_and_spiked(event, expiry_datetime)
+            spiked, events = await is_series_expired_and_spiked(event, expiry_datetime)
             if spiked:
                 series_to_delete[event["recurrence_id"]] = events
         else:
@@ -108,24 +108,24 @@ async def delete_spiked_events(expiry_datetime):
     logger.info(f"{log_msg} {len(events_deleted)} Events deleted: {list(events_deleted)}")
 
 
-def is_series_expired_and_spiked(event, expiry_datetime):
-    historic, past, future = get_resource_service("events").get_recurring_timeline(event, spiked=True)
+async def is_series_expired_and_spiked(event, expiry_datetime):
+    historic, past, future = await get_recurring_timeline(event, spiked=True)
 
     # There are future events, so the entire series is not expired.
     if len(future) > 0:
-        return False
+        return False, []
 
     def check_series_expired_and_spiked(series):
         for event in series:
             if event.get("state") != WORKFLOW_STATE.SPIKED or event["dates"]["end"] > expiry_datetime:
-                return False
+                return False, []
 
-        return True
+        return True, []
 
     if check_series_expired_and_spiked(historic) and check_series_expired_and_spiked(past):
         return True, [historic + past]
 
-    return False
+    return False, []
 
 
 async def delete_spiked_planning(expiry_datetime):
