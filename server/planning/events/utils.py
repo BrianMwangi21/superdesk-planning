@@ -13,7 +13,7 @@ from superdesk.utc import utcnow
 
 async def get_series(
     query: dict, sort: SortParam | None = None, max_results: int = 25
-) -> AsyncGenerator[dict[str, Any]]:
+) -> AsyncGenerator[dict[str, Any], None]:
     events_service = EventResourceModel.get_service()
     page = 1
 

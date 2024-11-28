@@ -11,6 +11,7 @@
 """Superdesk Planning Plugin."""
 
 import logging
+from server.planning.commands.delete_spiked_items import delete_spiked_items_handler
 import superdesk
 from quart_babel import lazy_gettext
 
@@ -64,12 +65,7 @@ from datetime import timedelta
 from superdesk import register_jinja_filter
 from .common import get_formatted_address
 
-from .commands import (
-    FlagExpiredItems,
-    DeleteSpikedItems,
-    DeleteMarkedAssignments,
-    ExportScheduledFilters,
-)
+from .commands import FlagExpiredItems, DeleteMarkedAssignments, ExportScheduledFilters, delete_spiked_items_handler
 import planning.commands  # noqa
 import planning.feeding_services  # noqa
 import planning.feed_parsers  # noqa
@@ -331,7 +327,9 @@ def flag_expired():
 
 @celery.task(soft_time_limit=600)
 def delete_spiked():
-    DeleteSpikedItems().run()
+    import asyncio
+
+    asyncio.run(delete_spiked_items_handler())
 
 
 @celery.task(soft_time_limit=600)
