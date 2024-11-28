@@ -6,8 +6,8 @@ class EventHTTPFeedingServiceTestCase(TestCase):
     def setUp(self):
         super().setUp()
 
-    def test_update(self):
-        with self.app.app_context():
+    async def test_update(self):
+        async with self.app.app_context():
             service = EventHTTPFeedingService()
             provider = {
                 "_id": "ics_20",

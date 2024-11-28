@@ -15,7 +15,11 @@ published_resource_config = ResourceConfig(
     service=PublishedAsyncService,
     mongo=MongoResourceConfig(
         indexes=[
-            MongoIndexOptions(name="item_id_1_version_1", keys=[("item_id", 1), ("version", 1)]),
+            MongoIndexOptions(
+                name="item_id_1_version_1",
+                keys=[("item_id", 1), ("version", 1)],
+                unique=False,
+            ),
         ],
     ),
     elastic=ElasticResourceConfig(),

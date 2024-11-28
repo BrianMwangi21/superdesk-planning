@@ -7,8 +7,8 @@ from superdesk.core.resources import fields, dataclass
 from superdesk.core.resources.validators import validate_data_relation_async
 
 from .base import BasePlanningModel
-from .common import PlanningCoverage
-from .enums import AssignmentWorkflowState
+from .common import LockFieldsMixin, PlanningCoverage
+from .enums import AssignmentPublishedState, AssignmentWorkflowState
 
 
 @dataclass
@@ -32,25 +32,29 @@ class AssignedTo:
     coverage_provider: CoverageProvider | None = None
 
 
-class AssignmentResourceModel(BasePlanningModel):
+class AssignmentResourceModel(BasePlanningModel, LockFieldsMixin):
+    id: Annotated[fields.ObjectId, Field(alias="_id", default_factory=fields.ObjectId)]
+
     firstcreated: datetime = Field(default_factory=utcnow)
     versioncreated: datetime = Field(default_factory=utcnow)
 
-    item_type: Annotated[fields.Keyword, Field(alias="type")] = "assignment"
     priority: int | None = None
     coverage_item: fields.Keyword | None = None
-    planning_item: Annotated[str, validate_data_relation_async("planning")] | None = None
+    planning_item: Annotated[fields.Keyword, validate_data_relation_async("planning")]
     scheduled_update_id: fields.Keyword | None = None
-
-    lock_user: Annotated[fields.ObjectId, validate_data_relation_async("users")] | None = None
-    lock_time: datetime | None = None
-    lock_session: Annotated[fields.ObjectId, validate_data_relation_async("users")] | None = None
-    lock_action: fields.Keyword | None = None
 
     assigned_to: AssignedTo | None = None
     planning: PlanningCoverage | None = None
 
     name: str | None = None
-    description_text: str | None = None
+    description_text: fields.HTML | None = None
     accepted: bool = False
     to_delete: bool = Field(default=False, alias="_to_delete")
+
+    published_at: datetime | None = None
+    published_state: AssignmentPublishedState | None = None
+
+    # TODO-ASYNC: this field was in the original schema but we're not sure if it's really required
+    # also it would clash with the computed property `type` from ResourceModel
+    # leaving it here for now until we know if it is required or we can get rid of it
+    # item_type: Annotated[fields.Keyword, Field(alias="type")] = "assignment"

@@ -37,8 +37,8 @@ expired = {
 
 
 class FlagExpiredItemsTest(TestCase):
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
 
         # Expire items that are scheduled more than 24 hours from now
         self.app.config.update({"PLANNING_EXPIRY_MINUTES": 1440})
@@ -58,10 +58,10 @@ class FlagExpiredItemsTest(TestCase):
         service = self.event_service if item_type == "events" else self.planning_service
         service.post(items)
 
-    def test_expire_disabled(self):
+    async def test_expire_disabled(self):
         self.app.config.update({"PLANNING_EXPIRY_MINUTES": 0})
 
-        with self.app.app_context():
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -121,8 +121,8 @@ class FlagExpiredItemsTest(TestCase):
                 },
             )
 
-    def test_event(self):
-        with self.app.app_context():
+    async def test_event(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -135,8 +135,8 @@ class FlagExpiredItemsTest(TestCase):
 
             self.assertExpired("events", {"e1": False, "e2": False, "e3": True})
 
-    def test_planning(self):
-        with self.app.app_context():
+    async def test_planning(self):
+        async with self.app.app_context():
             self.insert(
                 "planning",
                 [
@@ -186,8 +186,8 @@ class FlagExpiredItemsTest(TestCase):
                 },
             )
 
-    def test_event_with_single_planning_no_coverages(self):
-        with self.app.app_context():
+    async def test_event_with_single_planning_no_coverages(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -229,8 +229,8 @@ class FlagExpiredItemsTest(TestCase):
 
             self.assertExpired("planning", {"p1": False, "p2": False, "p3": False, "p4": True})
 
-    def test_event_with_single_planning_single_coverage(self):
-        with self.app.app_context():
+    async def test_event_with_single_planning_single_coverage(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -328,8 +328,8 @@ class FlagExpiredItemsTest(TestCase):
                 },
             )
 
-    def test_event_with_single_planning_multiple_coverages(self):
-        with self.app.app_context():
+    async def test_event_with_single_planning_multiple_coverages(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -481,8 +481,8 @@ class FlagExpiredItemsTest(TestCase):
                 },
             )
 
-    def test_event_with_multiple_planning(self):
-        with self.app.app_context():
+    async def test_event_with_multiple_planning(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -636,8 +636,8 @@ class FlagExpiredItemsTest(TestCase):
                 },
             )
 
-    def test_bad_event_schedule(self):
-        with self.app.app_context():
+    async def test_bad_event_schedule(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -657,8 +657,8 @@ class FlagExpiredItemsTest(TestCase):
                 },
             )
 
-    def test_published_planning_expiry(self):
-        with self.app.app_context():
+    async def test_published_planning_expiry(self):
+        async with self.app.app_context():
             self.app.config.update({"PUBLISH_QUEUE_EXPIRY_MINUTES": 1440})
             event_id = "urn:newsml:localhost:2018-06-25T11:43:44.511050:f292ab66-9df4-47db-80b1-0f58fd37bf9c"
             plan_id = "urn:newsml:localhost:2018-06-28T11:50:31.055283:21cb4c6d-42c9-4183-bb02-212cda2fb5a2"

@@ -9,9 +9,9 @@ USER_ID = ObjectId("5d385f31fe985ec67a0ca583")
 
 
 class DuplicateCoverageTestCase(TestCase):
-    def setUp(self):
-        super().setUp()
-        with self.app.app_context():
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        async with self.app.app_context():
             self.app.data.insert(
                 "planning",
                 [
@@ -62,8 +62,8 @@ class DuplicateCoverageTestCase(TestCase):
                 ],
             )
 
-    def test_duplicate(self):
-        with self.app.app_context():
+    async def test_duplicate(self):
+        async with self.app.app_context():
             updated_plan, new_coverage = get_resource_service("planning").duplicate_coverage_for_article_rewrite(
                 "plan1",
                 "cov1",
@@ -92,8 +92,8 @@ class DuplicateCoverageTestCase(TestCase):
             self.assertEqual(new_coverage["assigned_to"]["state"], "in_progress")
             self.assertEqual(new_coverage["news_coverage_status"], {"qcode": "ncostat:onreq"})
 
-    def test_duplicate_coverage_not_found(self):
-        with self.app.app_context():
+    async def test_duplicate_coverage_not_found(self):
+        async with self.app.app_context():
             try:
                 get_resource_service("planning").duplicate_coverage_for_article_rewrite("plan1", "cov2", {})
             except SuperdeskApiError as e:
@@ -103,8 +103,8 @@ class DuplicateCoverageTestCase(TestCase):
 
             self.assertFalse("Failed to raise an exception")
 
-    def test_duplicate_planning_not_found(self):
-        with self.app.app_context():
+    async def test_duplicate_planning_not_found(self):
+        async with self.app.app_context():
             try:
                 get_resource_service("planning").duplicate_coverage_for_article_rewrite("plan2", "cov1", {})
             except SuperdeskApiError as e:

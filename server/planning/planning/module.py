@@ -15,7 +15,11 @@ planning_resource_config = ResourceConfig(
     service=PlanningAsyncService,
     mongo=MongoResourceConfig(
         indexes=[
-            MongoIndexOptions(name="planning_recurrence_id", keys=[("planning_recurrence_id", 1)]),
+            MongoIndexOptions(
+                name="planning_recurrence_id",
+                keys=[("planning_recurrence_id", 1)],
+                unique=False,
+            ),
         ],
     ),
     elastic=ElasticResourceConfig(),

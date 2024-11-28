@@ -8,8 +8,8 @@ USER_ID = ObjectId("5d385f31fe985ec67a0ca583")
 
 
 class AssignmentLinkTestCase(TestCase):
-    def test_delivery_record(self):
-        with self.app.app_context():
+    async def test_delivery_record(self):
+        async with self.app.app_context():
             self.app.data.insert(
                 "archive",
                 [
@@ -57,8 +57,8 @@ class AssignmentLinkTestCase(TestCase):
             assignment = get_resource_service("assignments").find_one(req=None, _id=ObjectId(assignment_id))
             self.assertEqual(assignment.get("assigned_to")["state"], "in_progress")
 
-    def test_updates_creates_new_record(self):
-        with self.app.app_context():
+    async def test_updates_creates_new_record(self):
+        async with self.app.app_context():
             self.app.data.insert(
                 "archive",
                 [
@@ -149,8 +149,8 @@ class AssignmentLinkTestCase(TestCase):
             )
             self.assertEqual(deliveries.count(), 2)
 
-    def test_captures_item_state(self):
-        with self.app.app_context():
+    async def test_captures_item_state(self):
+        async with self.app.app_context():
             self.app.data.insert(
                 "archive",
                 [
@@ -191,8 +191,8 @@ class AssignmentLinkTestCase(TestCase):
             self.assertEqual(deliveries.count(), 1)
             self.assertEqual(deliveries[0].get("item_state"), "in_progress")
 
-    def test_previous_unlinked_content_gets_linked_when_update_is_linked(self):
-        with self.app.app_context():
+    async def test_previous_unlinked_content_gets_linked_when_update_is_linked(self):
+        async with self.app.app_context():
             self.app.config.update({"PLANNING_LINK_UPDATES_TO_COVERAGES": True})
             self.app.data.insert(
                 "archive",

@@ -15,8 +15,8 @@ class EventJsonFeedParserTestCase(TestCase):
     def test_event_json_feed_parser_can_parse(self):
         self.assertEqual(True, EventJsonFeedParser().can_parse(self.sample_json))
 
-    def test_event_json_feed_parser_parse(self):
-        with self.app.app_context():
+    async def test_event_json_feed_parser_parse(self):
+        async with self.app.app_context():
             random_event = {
                 "is_active": True,
                 "name": "random123",

@@ -17,11 +17,11 @@ class WorkflowState(str, Enum):
 @unique
 class AssignmentWorkflowState(str, Enum):
     DRAFT = "draft"
-    ACTIVE = "active"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
+    SUBMITTED = "submitted"
     CANCELLED = "cancelled"
-    RESCHEDULED = "rescheduled"
-    POSTPONED = "postponed"
 
 
 @unique
@@ -54,3 +54,13 @@ class ContentState(str, Enum):
     UNPUBLISHED = "unpublished"
     CORRECTION = "correction"
     BEING_CORRECTED = "being_corrected"
+
+
+@unique
+class AssignmentPublishedState(str, Enum):
+    # TODO-ASYNC: double check the states later as needed. These are the ones found in the code for now
+    SCHEDULED = "scheduled"
+    PUBLISHED = "published"
+    KILLED = "killed"
+    RECALLED = "recalled"
+    CORRECTED = "corrected"
