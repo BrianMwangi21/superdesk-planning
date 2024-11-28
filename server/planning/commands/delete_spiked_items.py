@@ -97,12 +97,12 @@ async def delete_spiked_events(expiry_datetime):
             if spiked:
                 series_to_delete[event["recurrence_id"]] = events
         else:
-            await events_service.delete_action(lookup={"_id": event_id})
+            await events_service.delete_many(lookup={"_id": event_id})
             events_deleted.add(event_id)
 
     # Delete recurring series
     for recurrence_id, events in series_to_delete.items():
-        await events_service.delete_action(lookup={"recurrence_id": recurrence_id})
+        await events_service.delete_many(lookup={"recurrence_id": recurrence_id})
         events_deleted.add(events)
 
     logger.info(f"{log_msg} {len(events_deleted)} Events deleted: {list(events_deleted)}")
@@ -150,13 +150,13 @@ async def delete_spiked_planning(expiry_datetime):
                 assignments_to_delete.append(assignment_id)
 
         # Now, delete the planning item
-        await planning_service.delete_action(lookup={"_id": plan_id})
+        await planning_service.delete_many(lookup={"_id": plan_id})
         plans_deleted.add(plan_id)
 
     # Delete assignments
     assignment_service = AssingmentsAsyncService()
     for assign_id in assignments_to_delete:
-        await assignment_service.delete(lookup={"_id": assign_id})
+        await assignment_service.delete_many(lookup={"_id": assign_id})
         assignments_deleted.add(assign_id)
 
     logger.info(f"{log_msg} {len(assignments_deleted)} Assignments deleted: {list(assignments_deleted)}")

@@ -99,7 +99,7 @@ class DeleteSpikedItemsTest(TestCase):
 
     async def insert(self, item_type, items):
         service = self.event_service if item_type == "events" else self.planning_service
-        await service.post(items)
+        await service.create(items)
 
     async def get_assignments_count(self):
         return await self.assignment_service.find({"_id": {"$exists": 1}}).count()

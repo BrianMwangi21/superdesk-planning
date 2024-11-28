@@ -1,30 +1,27 @@
+from typing import AsyncGenerator, Any, Tuple
 from datetime import datetime
-from eve.utils import ParsedRequest
-import json
 
 from planning.common import (
     WORKFLOW_STATE,
     get_max_recurrent_events,
 )
-from planning.events import EventsAsyncService
+from planning.types import EventResourceModel
+from superdesk.core.types import SortParam, SortListParam
 from superdesk.resource_fields import ID_FIELD
 from superdesk.utc import utcnow
 
 
-async def get_series(query, sort, max_results):
-    events_service = EventsAsyncService()
+async def get_series(
+    query: dict, sort: SortParam | None = None, max_results: int = 25
+) -> AsyncGenerator[dict[str, Any]]:
+    events_service = EventResourceModel.get_service()
     page = 1
 
     while True:
         # Get the results from mongo
-        req = ParsedRequest()
-        req.sort = sort
-        req.where = json.dumps(query)
-        req.max_results = max_results
-        req.page = page
-        results = await events_service.get_from_mongo(req=req, lookup=None)
+        results = await events_service.find(req=query, page=page, max_results=max_results, sort=sort, use_mongo=True)
 
-        docs = list(results)
+        docs = await results.to_list_raw()
         if not docs:
             break
 
@@ -36,12 +33,12 @@ async def get_series(query, sort, max_results):
 
 
 async def get_recurring_timeline(
-    selected,
-    spiked=False,
-    rescheduled=False,
-    cancelled=False,
-    postponed=False,
-):
+    selected: dict[str, Any],
+    spiked: bool = False,
+    rescheduled: bool = False,
+    cancelled: bool = False,
+    postponed: bool = False,
+) -> Tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
     """Utility method to get all events in the series
 
     This splits up the series of events into 3 separate arrays.
@@ -70,7 +67,7 @@ async def get_recurring_timeline(
     if excluded_states:
         query["$and"].append({"state": {"$nin": excluded_states}})
 
-    sort = '[("dates.start", 1)]'
+    sort: SortListParam = [("dates.start", 1)]
     max_results = get_max_recurrent_events()
     selected_start = selected.get("dates", {}).get("start", utcnow())
 

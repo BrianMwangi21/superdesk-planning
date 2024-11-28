@@ -1,3 +1,5 @@
+from typing import AsyncGenerator, Any
+from datetime import datetime
 from eve.utils import date_to_str
 
 from planning.types import EventResourceModel
@@ -8,7 +10,9 @@ from planning.core.service import BasePlanningAsyncService
 class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
     resource_name = "events"
 
-    async def get_expired_items(self, expiry_datetime, spiked_events_only=False):
+    async def get_expired_items(
+        self, expiry_datetime: datetime, spiked_events_only: bool = False
+    ) -> AsyncGenerator[list[dict[str, Any]], None]:
         """Get the expired items
 
         Where end date is in the past
@@ -29,22 +33,23 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
         while True:
             query["from"] = total_received
 
-            results = self.search(query)
+            results = await self.search(query)
+            results_count = await results.count()
 
             # If the total_events has not been set, then this is the first query
             # In which case we need to store the total hits from the search
             if total_events < 0:
-                total_events = results.count()
+                total_events = results_count
 
                 # If the search doesn't contain any results, return here
                 if total_events < 1:
                     break
 
             # If the last query doesn't contain any results, return here
-            if not len(results.docs):
+            if results_count == 0:
                 break
 
-            total_received += len(results.docs)
+            total_received += results_count
 
             # Yield the results for iteration by the callee
-            yield list(results.docs)
+            yield await results.to_list_raw()
