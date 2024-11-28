@@ -71,6 +71,7 @@ expired = {
 class DeleteSpikedItemsTest(TestCase):
     async def asyncSetUp(self):
         await super().asyncSetUp()
+        self.app_config.update({"MODULES": ["planning.module"]})
 
         # Expire items that are scheduled more than 24 hours from now
         self.app.config.update({"PLANNING_DELETE_SPIKED_MINUTES": 1440})
