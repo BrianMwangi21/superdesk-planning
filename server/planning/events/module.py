@@ -15,7 +15,11 @@ events_resource_config = ResourceConfig(
     default_sort=[("dates.start", 1)],
     mongo=MongoResourceConfig(
         indexes=[
-            MongoIndexOptions(name="recurrence_id_1", keys=[("recurrence_id", 1)]),
+            MongoIndexOptions(
+                name="recurrence_id_1",
+                keys=[("recurrence_id", 1)],
+                unique=False,
+            ),
             MongoIndexOptions(name="state", keys=[("state", 1)]),
             MongoIndexOptions(name="dates_start_1", keys=[("dates.start", 1)]),
             MongoIndexOptions(name="dates_end_1", keys=[("dates.end", 1)]),

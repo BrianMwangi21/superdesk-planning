@@ -17,11 +17,11 @@ class WorkflowState(str, Enum):
 @unique
 class AssignmentWorkflowState(str, Enum):
     DRAFT = "draft"
-    ACTIVE = "active"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
+    SUBMITTED = "submitted"
     CANCELLED = "cancelled"
-    RESCHEDULED = "rescheduled"
-    POSTPONED = "postponed"
 
 
 @unique

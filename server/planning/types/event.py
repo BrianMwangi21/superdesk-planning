@@ -10,33 +10,31 @@ from superdesk.core.resources.validators import validate_data_relation_async
 
 from .base import BasePlanningModel
 from .event_dates import EventDates, OccurStatus
-from .enums import ContentState, PostStates, UpdateMethods, WorkflowState
-from .common import CoverageStatus, KeywordQCodeName, PlanningSchedule, RelationshipItem, Subject
-
-
-class NameAnalyzed(str, fields.CustomStringField):
-    elastic_mapping = {
-        "type": "keyword",
-        "fields": {
-            "analyzed": {"type": "text", "analyzer": "html_field_analyzer"},
-        },
-    }
+from .enums import PostStates, UpdateMethods, WorkflowState
+from .common import (
+    CoverageStatus,
+    KeywordQCodeName,
+    LockFieldsMixin,
+    PlanningSchedule,
+    RelationshipItem,
+    SubjectListType,
+)
 
 
 class SlugLine(str, fields.CustomStringField):
     elastic_mapping = {
-        "type": "string",
+        "type": "text",
         "fielddata": True,
         "fields": {
             "phrase": {
-                "type": "string",
+                "type": "text",
                 "analyzer": "phrase_prefix_analyzer",
                 "fielddata": True,
             },
             "keyword": {
                 "type": "keyword",
             },
-            "text": {"type": "string", "analyzer": "html_field_analyzer"},
+            "text": {"type": "text", "analyzer": "html_field_analyzer"},
         },
     }
 
@@ -62,10 +60,10 @@ CoveragesIndex = Annotated[
                     "dynamic": False,
                     "properties": {
                         "slugline": {
-                            "type": "string",
+                            "type": "text",
                             "fields": {
                                 "phrase": {
-                                    "type": "string",
+                                    "type": "text",
                                     "analyzer": "phrase_prefix_analyzer",
                                     "search_analyzer": "phrase_prefix_analyzer",
                                 }
@@ -125,7 +123,7 @@ class EmbeddedPlanning:
     coverages: list[Coverage] | None = Field(default_factory=list)
 
 
-class EventResourceModel(BasePlanningModel):
+class EventResourceModel(BasePlanningModel, LockFieldsMixin):
     guid: fields.Keyword
     unique_id: int | None = None
     unique_name: fields.Keyword | None = None
@@ -188,7 +186,7 @@ class EventResourceModel(BasePlanningModel):
     access_status: KeywordQCodeName | None = None
 
     # Content metadata
-    subject: list[Subject | None] = Field(default_factory=list)
+    subject: SubjectListType = Field(default_factory=list)
     slugline: SlugLine | None = None
 
     # Item metadata
@@ -207,10 +205,6 @@ class EventResourceModel(BasePlanningModel):
 
     # says if the event is for internal usage or posted
     pubstatus: PostStates | None = None
-    lock_user: Annotated[fields.ObjectId, validate_data_relation_async("users")]
-    lock_time: datetime
-    lock_session: Annotated[fields.ObjectId, validate_data_relation_async("users")]
-    lock_action: fields.Keyword | None = None
 
     # The update method used for recurring events
     update_method: UpdateMethods | None = None
@@ -223,17 +217,17 @@ class EventResourceModel(BasePlanningModel):
 
     # The previous state the item was in before for example being spiked,
     # when un-spiked it will revert to this state
-    revert_state: ContentState | None = None
+    revert_state: WorkflowState | None = None
 
     # Used when duplicating/rescheduling of Events
-    duplicate_from: Annotated[str, validate_data_relation_async("events")] | None = None
-    duplicate_to: list[Annotated[str, validate_data_relation_async("events")]] = Field(default_factory=list)
-
-    reschedule_from: Annotated[str, validate_data_relation_async("events")] | None = None
-    reschedule_to: Annotated[str, validate_data_relation_async("events")] | None = None
+    duplicate_from: Annotated[fields.Keyword, validate_data_relation_async("events")] | None = None
+    duplicate_to: list[Annotated[fields.Keyword, validate_data_relation_async("events")]] = Field(default_factory=list)
+    reschedule_from: Annotated[fields.Keyword, validate_data_relation_async("events")] | None = None
+    reschedule_to: Annotated[fields.Keyword, validate_data_relation_async("events")] | None = None
     reschedule_from_schedule: datetime | None = Field(default=None, alias="_reschedule_from_schedule")
+
     place: list[Place] = Field(default_factory=list)
-    ednote: Annotated[str, fields.elastic_mapping({"analyzer": "html_field_analyzer"})] | None = None
+    ednote: fields.HTML | None = None
 
     # Reason (if any) for the current state (cancelled, postponed, rescheduled)
     state_reason: str | None = None
@@ -245,15 +239,17 @@ class EventResourceModel(BasePlanningModel):
 
     # This is used if an Event is created from a Planning Item
     # So that we can link the Planning item to this Event upon creation
-    planning_item: Annotated[str | None, validate_data_relation_async("planning")] = Field(
+    planning_item: Annotated[fields.Keyword | None, validate_data_relation_async("planning")] = Field(
         default=None, alias="_planning_item"
     )
 
     # This is used when event creation was based on `events_template`
-    template: Annotated[str | None, validate_data_relation_async("events_template")] = None
+    template: Annotated[fields.ObjectId | None, validate_data_relation_async("events_template")] = None
 
     # This is used when enhancing fetch items to add ids of associated Planning items
-    planning_ids: list[Annotated[str, validate_data_relation_async("planning")]] = Field(default_factory=list)
+    planning_ids: list[Annotated[fields.ObjectId, validate_data_relation_async("planning")]] = Field(
+        default_factory=list
+    )
 
     # HACK: ``coverages`` and ``related_events``
     # adds these fields to the Events elastic type. So when we're in the Events & Planning filter,

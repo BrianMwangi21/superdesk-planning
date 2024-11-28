@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Annotated
 
 from pydantic import Field
@@ -64,6 +64,9 @@ class Subject:
     translations: Translations | None = None
 
 
+SubjectListType = Annotated[list[Subject], fields.nested_list(include_in_parent=True)]
+
+
 @dataclass
 class Place:
     scheme: fields.Keyword | None = None
@@ -96,3 +99,10 @@ class PlanningCoverage:
     planning: dict[str, Any]
     assigned_to: dict[str, Any]
     original_creator: str | None = None
+
+
+class LockFieldsMixin:
+    lock_user: Annotated[fields.ObjectId, validate_data_relation_async("users")] | None = None
+    lock_time: datetime | None = None
+    lock_session: Annotated[fields.ObjectId, validate_data_relation_async("users")] | None = None
+    lock_action: fields.Keyword | None = None

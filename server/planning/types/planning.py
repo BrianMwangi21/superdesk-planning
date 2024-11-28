@@ -10,8 +10,8 @@ from superdesk.core.resources.validators import validate_data_relation_async
 
 from .event import Translation
 from .base import BasePlanningModel
-from .common import RelatedEvent, Subject, PlanningCoverage
 from .enums import PostStates, UpdateMethods, WorkflowState
+from .common import LockFieldsMixin, RelatedEvent, SubjectListType, PlanningCoverage
 
 
 @dataclass
@@ -20,7 +20,7 @@ class Flags:
     overide_auto_assign_to_workflow: bool = False
 
 
-class PlanningResourceModel(BasePlanningModel):
+class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
     guid: fields.Keyword
     unique_id: fields.Keyword | None = None
 
@@ -49,7 +49,7 @@ class PlanningResourceModel(BasePlanningModel):
     description_text: str | None = None
     internal_note: str | None = None
     anpa_category: list[CVItem] = Field(default_factory=list)
-    subject: list[Subject] = Field(default_factory=list)
+    subject: SubjectListType = Field(default_factory=list)
     genre: list[CVItem] = Field(default_factory=list)
     company_codes: list[CVItem] = Field(default_factory=list)
 
@@ -71,10 +71,7 @@ class PlanningResourceModel(BasePlanningModel):
     expiry: datetime | None = None
     expired: bool = False
     featured: bool = False
-    lock_user: Annotated[fields.ObjectId, validate_data_relation_async("users")] | None = None
-    lock_time: datetime | None = None
-    lock_session: Annotated[fields.ObjectId, validate_data_relation_async("users")] | None = None
-    lock_action: fields.Keyword | None = None
+
     coverages: list[PlanningCoverage] = Field(default_factory=list)
 
     # field to sync coverage scheduled information
