@@ -11,7 +11,6 @@
 """Superdesk Planning Plugin."""
 
 import logging
-from server.planning.commands.delete_spiked_items import delete_spiked_items_handler
 import superdesk
 from quart_babel import lazy_gettext
 

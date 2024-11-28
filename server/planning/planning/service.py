@@ -24,7 +24,7 @@ class PlanningAsyncService(BasePlanningAsyncService[PlanningResourceModel]):
             }
         }
         range_filter = {"range": {"planning_date": {"gt": date_to_str(expiry_datetime)}}}
-        query = {
+        query: dict[str, Any] = {
             "query": {
                 "bool": {
                     "must_not": [

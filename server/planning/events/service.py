@@ -17,7 +17,7 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
 
         Where end date is in the past
         """
-        query = {
+        query: dict[str, Any] = {
             "query": {"bool": {"must_not": [{"term": {"expired": True}}]}},
             "filter": {"range": {"dates.end": {"lte": date_to_str(expiry_datetime)}}},
             "sort": [{"dates.start": "asc"}],
