@@ -8,7 +8,7 @@ from superdesk.core.resources.validators import validate_data_relation_async
 
 from .base import BasePlanningModel
 from .common import PlanningCoverage
-from .enums import AssignmentWorkflowState
+from .enums import AssignmentPublishedState, AssignmentWorkflowState
 
 
 @dataclass
@@ -39,7 +39,7 @@ class AssignmentResourceModel(BasePlanningModel):
     item_type: Annotated[fields.Keyword, Field(alias="type")] = "assignment"
     priority: int | None = None
     coverage_item: fields.Keyword | None = None
-    planning_item: Annotated[str, validate_data_relation_async("planning")] | None = None
+    planning_item: Annotated[str, validate_data_relation_async("planning")]
     scheduled_update_id: fields.Keyword | None = None
 
     lock_user: Annotated[fields.ObjectId, validate_data_relation_async("users")] | None = None
@@ -54,3 +54,6 @@ class AssignmentResourceModel(BasePlanningModel):
     description_text: str | None = None
     accepted: bool = False
     to_delete: bool = Field(default=False, alias="_to_delete")
+
+    published_at: datetime | None = None
+    published_state: AssignmentPublishedState | None = None
