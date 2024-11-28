@@ -10,7 +10,7 @@ from superdesk.core.resources.validators import validate_data_relation_async
 from .enums import LinkType
 
 
-class NameAnalyzed(str, fields.CustomStringField):
+class NameAnalyzedField(str, fields.CustomStringField):
     elastic_mapping = {
         "type": "keyword",
         "fields": {
@@ -39,7 +39,7 @@ class SlugLineField(str, fields.CustomStringField):
 
 TimeToBeConfirmedType: TypeAlias = Annotated[bool, Field(alias="_time_to_be_confirmed")]
 
-Translations = Annotated[
+Translations: TypeAlias = Annotated[
     dict[str, Any],
     fields.elastic_mapping(
         {
@@ -101,7 +101,7 @@ class ExtProperty(KeywordQCodeName):
 @dataclass
 class Subject:
     qcode: fields.Keyword
-    name: NameAnalyzed
+    name: NameAnalyzedField
     scheme: fields.Keyword
     translations: Translations | None = None
 
