@@ -18,25 +18,9 @@ from .common import (
     PlanningSchedule,
     RelationshipItem,
     SubjectListType,
+    SlugLineField,
+    TimeToBeConfirmedType,
 )
-
-
-class SlugLine(str, fields.CustomStringField):
-    elastic_mapping = {
-        "type": "text",
-        "fielddata": True,
-        "fields": {
-            "phrase": {
-                "type": "text",
-                "analyzer": "phrase_prefix_analyzer",
-                "fielddata": True,
-            },
-            "keyword": {
-                "type": "keyword",
-            },
-            "text": {"type": "text", "analyzer": "html_field_analyzer"},
-        },
-    }
 
 
 @dataclass
@@ -96,11 +80,11 @@ RelatedEvents = Annotated[
 class Translation:
     field: fields.Keyword | None = None
     language: fields.Keyword | None = None
-    value: SlugLine | None = None
+    value: SlugLineField | None = None
 
 
 @dataclass
-class Coverage:
+class EmbeddedPlanningCoverage:
     coverage_id: str
     g2_content_type: str
     news_coverage_status: str
@@ -119,8 +103,23 @@ class Coverage:
 @dataclass
 class EmbeddedPlanning:
     planning_id: Annotated[str, validate_data_relation_async("planning")]
-    update_method: UpdateMethods | None = None
-    coverages: list[Coverage] | None = Field(default_factory=list)
+    update_method: Annotated[UpdateMethods, fields.keyword_mapping()] | None = None
+    coverages: list[EmbeddedPlanningCoverage] | None = Field(default_factory=list)
+
+
+@dataclass
+class RelatedItem:
+    guid: str
+    type: str | None = None
+    state: str | None = None
+    version: int | None = None
+    headline: fields.HTML | None = None
+    slugline: str | None = None
+    versioncreated: datetime | None = None
+    search_provider: str | None = None
+    pubstatus: str | None = None
+    language: str | None = None
+    word_count: int | None = None
 
 
 class EventResourceModel(BasePlanningModel, LockFieldsMixin):
@@ -187,7 +186,7 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
 
     # Content metadata
     subject: SubjectListType = Field(default_factory=list)
-    slugline: SlugLine | None = None
+    slugline: SlugLineField | None = None
 
     # Item metadata
     location: list[EventLocation | None] = Field(default_factory=list)
@@ -235,7 +234,7 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
     # Datetime when a particular action (postpone, reschedule, cancel) took place
     actioned_date: datetime | None = None
     completed: bool = False
-    time_to_be_confirmed: bool = Field(default=False, alias="_time_to_be_confirmed")
+    time_to_be_confirmed: TimeToBeConfirmedType = False
 
     # This is used if an Event is created from a Planning Item
     # So that we can link the Planning item to this Event upon creation
@@ -257,25 +256,17 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
     # Otherwise elastic will raise an exception stating the field doesn't exist on the index
     coverages: CoveragesIndex | None = None
     related_events: RelatedEvents | None = None
-    # HACK: end. We'll try to move this hacks somewhere else
+    # HACK: end. We'll try to move these hacks somewhere else
 
-    extra: Annotated[dict[str, Any], fields.elastic_mapping({"type": "object", "dynamic": True})] = Field(
-        default_factory=dict
-    )
+    extra: Annotated[dict[str, Any], fields.dynamic_mapping()] = Field(default_factory=dict)
     translations: Annotated[list[Translation], fields.nested_list()]
 
     # This is used from the EmbeddedCoverage form in the Event editor
     # This list is NOT stored with the Event
-    embedded_planning: Annotated[list[EmbeddedPlanning], fields.not_indexed] = Field(default_factory=list)
+    embedded_planning: Annotated[list[EmbeddedPlanning], fields.not_indexed()] = Field(default_factory=list)
 
     # This is used to create new planning items from the event editor
-    # TODO-ASYNC: consider adding proper types instead of a dynamic dict
-    associated_plannings: Annotated[
-        list[dict[str, Any]], fields.elastic_mapping({"type": "object", "dynamic": True})
-    ] = Field(default_factory=list)
+    associated_plannings: Annotated[list[dict[str, Any]], fields.dynamic_mapping()] = Field(default_factory=list)
 
-    related_items: list[ContentAPIItem] = Field(default_factory=list)
+    related_items: list[RelatedItem] = Field(default_factory=list)
     failed_planned_ids: list[str] = Field(default_factory=list)
-
-    # TODO-ASYNC: check why do we have `type` and `_type`
-    _type: str | None = None
