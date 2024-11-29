@@ -193,7 +193,9 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
     participant: list[KeywordQCodeName | None] = Field(default_factory=list)
     participant_requirement: list[KeywordQCodeName | None] = Field(default_factory=list)
     organizer: list[KeywordQCodeName | None] = Field(default_factory=list)
-    event_contact_info: Annotated[list[fields.ObjectId], validate_data_relation_async("contacts")]
+    event_contact_info: Annotated[list[fields.ObjectId], validate_data_relation_async("contacts")] = Field(
+        default_factory=list
+    )
     language: fields.Keyword | None = None
     languages: list[fields.Keyword] = Field(default_factory=list)
 
@@ -259,7 +261,7 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
     # HACK: end. We'll try to move these hacks somewhere else
 
     extra: Annotated[dict[str, Any], fields.dynamic_mapping()] = Field(default_factory=dict)
-    translations: Annotated[list[Translation], fields.nested_list()]
+    translations: Annotated[list[Translation], fields.nested_list()] = Field(default_factory=list)
 
     # This is used from the EmbeddedCoverage form in the Event editor
     # This list is NOT stored with the Event

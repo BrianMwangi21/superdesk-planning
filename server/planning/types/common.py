@@ -237,7 +237,7 @@ class ScheduledUpdate:
 @dataclass
 class PlanningCoverage:
     # Identifiers
-    coverage_id: fields.Keyword
+    coverage_id: fields.Keyword | None = None
     original_coverage_id: fields.Keyword | None = None
     guid: fields.Keyword | None = None
 
