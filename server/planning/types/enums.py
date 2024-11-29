@@ -64,3 +64,9 @@ class AssignmentPublishedState(str, Enum):
     KILLED = "killed"
     RECALLED = "recalled"
     CORRECTED = "corrected"
+
+
+@unique
+class LinkType(str, Enum):
+    PRIMARY = "primary"
+    SECONDARY = "secondary"

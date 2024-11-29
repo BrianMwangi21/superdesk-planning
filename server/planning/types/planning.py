@@ -1,9 +1,10 @@
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 from datetime import datetime
 from typing import Annotated, Any
 
 from content_api.items.model import CVItem, Place
 
+from superdesk.core.elastic.mapping import json_schema_to_elastic_mapping
 from superdesk.utc import utcnow
 from superdesk.core.resources import fields, dataclass
 from superdesk.core.resources.validators import validate_data_relation_async
@@ -11,7 +12,17 @@ from superdesk.core.resources.validators import validate_data_relation_async
 from .event import Translation
 from .base import BasePlanningModel
 from .enums import PostStates, UpdateMethods, WorkflowState
-from .common import LockFieldsMixin, RelatedEvent, SubjectListType, PlanningCoverage
+from .common import (
+    CoverageAssignedTo,
+    LockFieldsMixin,
+    PlanningSchedule,
+    RelatedEvent,
+    SlugLineField,
+    SubjectListType,
+    PlanningCoverage,
+    TimeToBeConfirmedType,
+    UpdatesSchedule,
+)
 
 
 @dataclass
@@ -36,7 +47,7 @@ class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
     ingest_versioncreated: datetime = Field(default_factory=utcnow)
 
     # Agenda Item details
-    agendas: list[Annotated[str, validate_data_relation_async("agenda")]] = Field(default_factory=list)
+    agendas: list[Annotated[fields.ObjectId, validate_data_relation_async("agenda")]] = Field(default_factory=list)
     related_events: list[RelatedEvent] = Field(default_factory=list)
     recurrence_id: fields.Keyword | None = None
     planning_recurrence_id: fields.Keyword | None = None
@@ -45,9 +56,11 @@ class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
     # NewsML-G2 Event properties See IPTC-G2-Implementation_Guide 16
     # Planning Item Metadata - See IPTC-G2-Implementation_Guide 16.1
     item_class: str = Field(default="plinat:newscoverage")
-    ednote: str | None = None
-    description_text: str | None = None
-    internal_note: str | None = None
+
+    ednote: fields.HTML | None = None
+    description_text: fields.HTML | None = None
+    internal_note: fields.HTML | None = None
+
     anpa_category: list[CVItem] = Field(default_factory=list)
     subject: SubjectListType = Field(default_factory=list)
     genre: list[CVItem] = Field(default_factory=list)
@@ -57,10 +70,12 @@ class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
     language: fields.Keyword | None = None
     languages: list[fields.Keyword] = Field(default_factory=list)
     translations: Annotated[list[Translation], fields.nested_list()] = Field(default_factory=list)
-    abstract: str | None = None
-    headline: str | None = None
-    slugline: str | None = None
-    keywords: list[str] = Field(default_factory=list)
+
+    abstract: fields.HTML | None = None
+    headline: fields.HTML | None = None
+    slugline: SlugLineField | None = None
+    keywords: list[fields.HTML] = Field(default_factory=list)
+
     word_count: int | None = None
     priority: int | None = None
     urgency: int | None = None
@@ -72,36 +87,58 @@ class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
     expired: bool = False
     featured: bool = False
 
-    coverages: list[PlanningCoverage] = Field(default_factory=list)
+    coverages: Annotated[
+        list[PlanningCoverage],
+        fields.elastic_mapping(
+            {
+                "type": "nested",
+                "properties": {
+                    "coverage_id": fields.Keyword,
+                    "planning": {
+                        "type": "object",
+                        "properties": {
+                            "slugline": SlugLineField.elastic_mapping,
+                        },
+                    },
+                    "assigned_to": {
+                        "type": "object",
+                        "properties": CoverageAssignedTo.to_elastic_properties(),
+                    },
+                    "original_creator": {
+                        "type": "keyword",
+                    },
+                },
+            }
+        ),
+    ] = Field(default_factory=list)
 
     # field to sync coverage scheduled information
     # to be used for sorting/filtering on scheduled
-    planning_schedule: Annotated[list[dict[str, Any]], fields.nested_list()] = Field(
+    planning_schedule: Annotated[list[PlanningSchedule], fields.nested_list()] = Field(
         default_factory=list, alias="_planning_schedule"
     )
 
     # field to sync scheduled_updates scheduled information
     # to be used for sorting/filtering on scheduled
-    updates_schedule: Annotated[list[dict[str, Any]], fields.nested_list()] = Field(
+    updates_schedule: Annotated[list[UpdatesSchedule], fields.nested_list()] = Field(
         default_factory=list, alias="updates_schedule"
     )
+
     planning_date: datetime
     flags: Flags = Field(default_factory=Flags)
     pubstatus: PostStates | None = None
     revert_state: WorkflowState | None = None
 
-    # Item type used by superdesk publishing
-    item_type: Annotated[fields.Keyword, Field(alias="type")] = "planning"
     place: list[Place] = Field(default_factory=list)
     name: str | None = None
-    files: list[Annotated[str, validate_data_relation_async("planning_files")]] = Field(default_factory=list)
+    files: Annotated[list[fields.ObjectId], validate_data_relation_async("planning_files")] = Field(
+        default_factory=list
+    )
 
     # Reason (if any) for the current state (cancelled, postponed, rescheduled)
     state_reason: str | None = None
-    time_to_be_confirmed: bool = Field(default=False, alias="_time_to_be_confirmed")
-    extra: Annotated[dict[str, Any], fields.elastic_mapping({"type": "object", "dynamic": True})] = Field(
-        default_factory=dict
-    )
+    time_to_be_confirmed: TimeToBeConfirmedType = False
+    extra: Annotated[dict[str, Any], fields.dynamic_mapping()] = Field(default_factory=dict)
 
     versionposted: datetime | None = None
     update_method: UpdateMethods | None = None
