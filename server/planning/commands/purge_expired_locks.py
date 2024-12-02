@@ -113,7 +113,7 @@ async def purge_item_locks(resource: str, expiry_datetime: str):
 
             try:
                 # Remove all lock information from this item
-                resource_service.system_update(
+                await resource_service.system_update(
                     item_id,
                     {
                         LOCK_USER: None,
