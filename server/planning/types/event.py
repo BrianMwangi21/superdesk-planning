@@ -2,7 +2,7 @@ from pydantic import Field
 from datetime import datetime
 from typing import Annotated, Any
 
-from content_api.items.model import CVItem, ContentAPIItem, Place
+from content_api.items.model import CVItem, Place
 
 from superdesk.utc import utcnow
 from superdesk.core.resources import fields, dataclass
@@ -152,7 +152,7 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
 
     # Event Details
     # NewsML-G2 Event properties See IPTC-G2-Implementation_Guide 15.2
-    name: str
+    name: str | None = None
     definition_short: str | None = None
     definition_long: str | None = None
     internal_note: str | None = None
