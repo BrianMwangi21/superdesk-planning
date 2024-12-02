@@ -28,9 +28,9 @@ from planning.assignments import AssingmentsAsyncService
 
 logger = logging.getLogger(__name__)
 SERVICE_MAPPING = {
-    "events": EventsAsyncService(),
-    "planning": PlanningAsyncService(),
-    "assignments": AssingmentsAsyncService(),
+    "events": EventsAsyncService,
+    "planning": PlanningAsyncService,
+    "assignments": AssingmentsAsyncService,
 }
 
 
@@ -96,7 +96,7 @@ async def purge_expired_locks_handler(resource: str, expire_hours: int = 24):
 
 async def purge_item_locks(resource: str, expiry_datetime: str):
     logger.info(f"Purging expired locks for {resource}")
-    resource_service = SERVICE_MAPPING[resource]
+    resource_service = SERVICE_MAPPING[resource]()
     try:
         autosave_service = get_resource_service("event_autosave" if resource == "events" else f"{resource}_autosave")
     except KeyError:
@@ -147,7 +147,7 @@ async def purge_item_locks(resource: str, expiry_datetime: str):
 
 
 async def get_locked_items(resource: str, expiry_datetime: str) -> AsyncGenerator[list[dict[str, Any]], None]:
-    resource_service = SERVICE_MAPPING[resource]
+    resource_service = SERVICE_MAPPING[resource]()
     total_received = 0
     query = {
         "query": {"bool": {"filter": [{"range": {LOCK_TIME: {"lt": expiry_datetime}}}]}},

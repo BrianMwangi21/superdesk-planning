@@ -30,86 +30,87 @@ class PurgeExpiredLocksTest(TestCase):
         await super().asyncSetUp()
         self.app_config.update({"MODULES": ["planning.module"]})
         self.service_mapping = {
-            "events": EventsAsyncService(),
-            "planning": PlanningAsyncService(),
-            "assignments": AssingmentsAsyncService(),
+            "events": EventsAsyncService,
+            "planning": PlanningAsyncService,
+            "assignments": AssingmentsAsyncService,
         }
 
-        await self.insert(
-            "events",
-            [
-                {
-                    "_id": "active_event_1",
-                    "dates": {"start": now, "end": now + timedelta(days=1)},
-                    "lock_user": "user1",
-                    "lock_session": "session1",
-                    "lock_time": now - timedelta(hours=23),
-                    "lock_action": "edit",
-                },
-                {
-                    "_id": "expired_event_1",
-                    "dates": {"start": now, "end": now + timedelta(days=1)},
-                    "lock_user": "user2",
-                    "lock_session": "session2",
-                    "lock_time": now - timedelta(hours=25),
-                    "lock_action": "edit",
-                },
-            ],
-        )
-        await self.insert(
-            "planning",
-            [
-                {
-                    "_id": "active_plan_1",
-                    "planning_date": now,
-                    "lock_user": "user3",
-                    "lock_session": "session3",
-                    "lock_time": now - timedelta(hours=23),
-                    "lock_action": "edit",
-                },
-                {
-                    "_id": "expired_plan_1",
-                    "planning_date": now,
-                    "lock_user": "user4",
-                    "lock_session": "session4",
-                    "lock_time": now - timedelta(hours=25),
-                    "lock_action": "edit",
-                },
-            ],
-        )
-        await self.insert(
-            "assignments",
-            [
-                {
-                    "_id": assignment_1_id,
-                    "lock_user": "user5",
-                    "lock_session": "session5",
-                    "lock_time": now - timedelta(hours=23),
-                    "lock_action": "edit",
-                },
-                {
-                    "_id": assignment_2_id,
-                    "lock_user": "user6",
-                    "lock_session": "session6",
-                    "lock_time": now - timedelta(hours=25),
-                    "lock_action": "edit",
-                },
-            ],
-        )
-        await self.assertLockState(
-            [
-                ("events", "active_event_1", True),
-                ("events", "expired_event_1", True),
-                ("planning", "active_plan_1", True),
-                ("planning", "expired_plan_1", True),
-                ("assignments", assignment_1_id, True),
-                ("assignments", assignment_2_id, True),
-            ]
-        )
+        async with self.app.app_context():
+            await self.insert(
+                "events",
+                [
+                    {
+                        "_id": "active_event_1",
+                        "dates": {"start": now, "end": now + timedelta(days=1)},
+                        "lock_user": "user1",
+                        "lock_session": "session1",
+                        "lock_time": now - timedelta(hours=23),
+                        "lock_action": "edit",
+                    },
+                    {
+                        "_id": "expired_event_1",
+                        "dates": {"start": now, "end": now + timedelta(days=1)},
+                        "lock_user": "user2",
+                        "lock_session": "session2",
+                        "lock_time": now - timedelta(hours=25),
+                        "lock_action": "edit",
+                    },
+                ],
+            )
+            await self.insert(
+                "planning",
+                [
+                    {
+                        "_id": "active_plan_1",
+                        "planning_date": now,
+                        "lock_user": "user3",
+                        "lock_session": "session3",
+                        "lock_time": now - timedelta(hours=23),
+                        "lock_action": "edit",
+                    },
+                    {
+                        "_id": "expired_plan_1",
+                        "planning_date": now,
+                        "lock_user": "user4",
+                        "lock_session": "session4",
+                        "lock_time": now - timedelta(hours=25),
+                        "lock_action": "edit",
+                    },
+                ],
+            )
+            await self.insert(
+                "assignments",
+                [
+                    {
+                        "_id": assignment_1_id,
+                        "lock_user": "user5",
+                        "lock_session": "session5",
+                        "lock_time": now - timedelta(hours=23),
+                        "lock_action": "edit",
+                    },
+                    {
+                        "_id": assignment_2_id,
+                        "lock_user": "user6",
+                        "lock_session": "session6",
+                        "lock_time": now - timedelta(hours=25),
+                        "lock_action": "edit",
+                    },
+                ],
+            )
+            await self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", True),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", True),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, True),
+                ]
+            )
 
     async def insert(self, item_type, items):
         try:
-            service = self.service_mapping[item_type]
+            service = self.service_mapping[item_type]()
         except KeyError:
             raise ValueError(f"Invalid item_type: {item_type}")
         await service.create(items)
@@ -117,7 +118,7 @@ class PurgeExpiredLocksTest(TestCase):
     async def assertLockState(self, item_tests: List[Tuple[str, Union[str, ObjectId], bool]]):
         for resource, item_id, is_locked in item_tests:
             try:
-                service = self.service_mapping[resource]
+                service = self.service_mapping[resource]()
             except KeyError:
                 raise ValueError(f"Invalid resource: {resource}")
 
