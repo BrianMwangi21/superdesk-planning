@@ -2,7 +2,7 @@ from pydantic import Field
 from datetime import datetime
 from typing import Annotated, Any
 
-from content_api.items.model import CVItem, ContentAPIItem, Place
+from content_api.items.model import CVItem, Place
 
 from superdesk.utc import utcnow
 from superdesk.core.resources import fields, dataclass
