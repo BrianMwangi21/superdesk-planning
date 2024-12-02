@@ -21,7 +21,7 @@ from planning.common import WORKFLOW_STATE
 from planning.events import EventsAsyncService
 from planning.events.utils import get_recurring_timeline
 from planning.planning import PlanningAsyncService
-from planning.assignments import AssingmentsAsyncService
+from planning.assignments import AssignmentsAsyncService
 from .async_cli import planning_cli
 
 
@@ -154,7 +154,7 @@ async def delete_spiked_planning(expiry_datetime):
         plans_deleted.add(plan_id)
 
     # Delete assignments
-    assignment_service = AssingmentsAsyncService()
+    assignment_service = AssignmentsAsyncService()
     for assign_id in assignments_to_delete:
         await assignment_service.delete_many(lookup={"_id": assign_id})
         assignments_deleted.add(assign_id)

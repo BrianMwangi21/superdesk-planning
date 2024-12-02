@@ -15,7 +15,7 @@ from datetime import timedelta
 from planning.common import WORKFLOW_STATE
 from planning.events import EventsAsyncService
 from planning.planning import PlanningAsyncService
-from planning.assignments import AssingmentsAsyncService
+from planning.assignments import AssignmentsAsyncService
 
 now = utcnow()
 yesterday = now - timedelta(hours=48)
@@ -78,13 +78,13 @@ class DeleteSpikedItemsTest(TestCase):
 
         self.event_service = EventsAsyncService()
         self.planning_service = PlanningAsyncService()
-        self.assignment_service = AssingmentsAsyncService()
+        self.assignment_service = AssignmentsAsyncService()
 
     async def assertDeleteOperation(self, item_type, ids, not_deleted=False):
         service = self.event_service if item_type == "events" else self.planning_service
 
         for item_id in ids:
-            item = await service.find_one(_id=item_id, req=None)
+            item = await service.find_one(guid=item_id, req=None)
             if not_deleted:
                 self.assertIsNotNone(item)
             else:
@@ -92,7 +92,7 @@ class DeleteSpikedItemsTest(TestCase):
 
     async def assertAssignmentDeleted(self, assignment_ids, not_deleted=False):
         for assignment_id in assignment_ids:
-            assignment = await self.assignment_service.find_one(_id=assignment_id, req=None)
+            assignment = await self.assignment_service.find_one(guid=assignment_id, req=None)
             if not_deleted:
                 self.assertIsNotNone(assignment)
             else:
@@ -103,7 +103,8 @@ class DeleteSpikedItemsTest(TestCase):
         await service.create(items)
 
     async def get_assignments_count(self):
-        return await self.assignment_service.find({"_id": {"$exists": 1}}).count()
+        results = await self.assignment_service.find({"_id": {"$exists": 1}})
+        return await results.count()
 
     async def test_delete_spike_disabled(self):
         self.app.config.update({"PLANNING_DELETE_SPIKED_MINUTES": 0})
@@ -152,7 +153,9 @@ class DeleteSpikedItemsTest(TestCase):
             )
             await delete_spiked_items_handler()
             await self.assertDeleteOperation("events", ["e1", "e2", "e3"], not_deleted=True)
-            await self.assertDeleteOperation("planning", ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], True)
+            await self.assertDeleteOperation(
+                "planning", ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], not_deleted=True
+            )
 
     async def test_event(self):
         async with self.app.app_context():
@@ -292,7 +295,7 @@ class DeleteSpikedItemsTest(TestCase):
             # Map plannings to assignments
             assignments = {}
             for plan_id in ["p1", "p2", "p3", "p4"]:
-                planning = await self.planning_service.find_one(_id=plan_id, req=None)
+                planning = await self.planning_service.find_one(guid=plan_id, req=None)
                 if planning:
                     assignments[plan_id] = planning["coverages"][0]["assigned_to"]["assignment_id"]
 
