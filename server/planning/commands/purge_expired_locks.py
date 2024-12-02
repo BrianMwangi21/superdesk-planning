@@ -49,7 +49,7 @@ SERVICE_MAPPING = {
     default=24,
     help="Purges locks that are older than this many hours (default: 24 hours)",
 )
-async def purge_expired_locks_command(resource: str, expire_hours: int):
+async def purge_expired_locks_command(resource: str, expire_hours: int = 24):
     """
     Purge item locks that are linked to a non-existing session
 
@@ -68,7 +68,7 @@ async def purge_expired_locks_command(resource: str, expire_hours: int):
     return await purge_expired_locks_handler(resource, expire_hours)
 
 
-async def purge_expired_locks_handler(resource: str, expire_hours: int):
+async def purge_expired_locks_handler(resource: str, expire_hours: int = 24):
     logger.info("Starting to purge expired item locks")
 
     if resource == "all":

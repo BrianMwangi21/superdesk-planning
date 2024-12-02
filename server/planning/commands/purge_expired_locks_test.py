@@ -14,8 +14,10 @@ from bson import ObjectId
 
 from superdesk.utc import utcnow
 from planning.tests import TestCase
-
-from .purge_expired_locks import PurgeExpiredLocks
+from planning.events import EventsAsyncService
+from planning.planning import PlanningAsyncService
+from planning.assignments import AssingmentsAsyncService
+from .purge_expired_locks import purge_expired_locks_handler
 
 now = utcnow()
 assignment_1_id = ObjectId()
@@ -26,7 +28,14 @@ assignment_2_id = ObjectId()
 class PurgeExpiredLocksTest(TestCase):
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        self.app.data.insert(
+        self.app_config.update({"MODULES": ["planning.module"]})
+        self.service_mapping = {
+            "events": EventsAsyncService(),
+            "planning": PlanningAsyncService(),
+            "assignments": AssingmentsAsyncService(),
+        }
+
+        await self.insert(
             "events",
             [
                 {
@@ -47,7 +56,7 @@ class PurgeExpiredLocksTest(TestCase):
                 },
             ],
         )
-        self.app.data.insert(
+        await self.insert(
             "planning",
             [
                 {
@@ -68,7 +77,7 @@ class PurgeExpiredLocksTest(TestCase):
                 },
             ],
         )
-        self.app.data.insert(
+        await self.insert(
             "assignments",
             [
                 {
@@ -87,7 +96,7 @@ class PurgeExpiredLocksTest(TestCase):
                 },
             ],
         )
-        self.assertLockState(
+        await self.assertLockState(
             [
                 ("events", "active_event_1", True),
                 ("events", "expired_event_1", True),
@@ -98,28 +107,43 @@ class PurgeExpiredLocksTest(TestCase):
             ]
         )
 
-    def test_invalid_resource(self):
-        with self.assertRaises(ValueError):
-            PurgeExpiredLocks().run("blah")
+    async def insert(self, item_type, items):
+        try:
+            service = self.service_mapping[item_type]
+        except KeyError:
+            raise ValueError(f"Invalid item_type: {item_type}")
+        await service.create(items)
 
-    def assertLockState(self, item_tests: List[Tuple[str, Union[str, ObjectId], bool]]):
+    async def assertLockState(self, item_tests: List[Tuple[str, Union[str, ObjectId], bool]]):
         for resource, item_id, is_locked in item_tests:
-            item = self.app.data.find_one(resource, req=None, _id=item_id)
+            try:
+                service = self.service_mapping[resource]
+            except KeyError:
+                raise ValueError(f"Invalid resource: {resource}")
+
+            item = await service.find_by_id(item_id)
+            if not item:
+                raise AssertionError(f"{resource} item with ID {item_id} not found")
+
             if is_locked:
-                self.assertIsNotNone(item["lock_user"], f"{resource} item {item_id} is NOT locked, item={item}")
-                self.assertIsNotNone(item["lock_session"], f"{resource} item {item_id} is NOT locked, item={item}")
-                self.assertIsNotNone(item["lock_time"], f"{resource} item {item_id} is NOT locked, item={item}")
-                self.assertIsNotNone(item["lock_action"], f"{resource} item {item_id} is NOT locked, item={item}")
+                self.assertIsNotNone(item.get("lock_user"), f"{resource} item {item_id} is NOT locked, item={item}")
+                self.assertIsNotNone(item.get("lock_session"), f"{resource} item {item_id} is NOT locked, item={item}")
+                self.assertIsNotNone(item.get("lock_time"), f"{resource} item {item_id} is NOT locked, item={item}")
+                self.assertIsNotNone(item.get("lock_action"), f"{resource} item {item_id} is NOT locked, item={item}")
             else:
                 self.assertIsNone(item.get("lock_user"), f"{resource} item {item_id} is locked, item={item}")
                 self.assertIsNone(item.get("lock_session"), f"{resource} item {item_id} is locked, item={item}")
                 self.assertIsNone(item.get("lock_time"), f"{resource} item {item_id} is locked, item={item}")
                 self.assertIsNone(item.get("lock_action"), f"{resource} item {item_id} is locked, item={item}")
 
+    async def test_invalid_resource(self):
+        with self.assertRaises(ValueError):
+            await purge_expired_locks_handler("blah")
+
     async def test_purge_event_locks(self):
         async with self.app.app_context():
-            PurgeExpiredLocks().run("events")
-            self.assertLockState(
+            await purge_expired_locks_handler("events")
+            await self.assertLockState(
                 [
                     ("events", "active_event_1", True),
                     ("events", "expired_event_1", False),
@@ -132,8 +156,8 @@ class PurgeExpiredLocksTest(TestCase):
 
     async def test_purge_planning_locks(self):
         async with self.app.app_context():
-            PurgeExpiredLocks().run("planning")
-            self.assertLockState(
+            await purge_expired_locks_handler("planning")
+            await self.assertLockState(
                 [
                     ("events", "active_event_1", True),
                     ("events", "expired_event_1", True),
@@ -146,8 +170,8 @@ class PurgeExpiredLocksTest(TestCase):
 
     async def test_purge_assignment_locks(self):
         async with self.app.app_context():
-            PurgeExpiredLocks().run("assignments")
-            self.assertLockState(
+            await purge_expired_locks_handler("assignments")
+            await self.assertLockState(
                 [
                     ("events", "active_event_1", True),
                     ("events", "expired_event_1", True),
@@ -160,8 +184,8 @@ class PurgeExpiredLocksTest(TestCase):
 
     async def test_purge_all_locks(self):
         async with self.app.app_context():
-            PurgeExpiredLocks().run("all")
-            self.assertLockState(
+            await purge_expired_locks_handler("all")
+            await self.assertLockState(
                 [
                     ("events", "active_event_1", True),
                     ("events", "expired_event_1", False),
@@ -174,8 +198,8 @@ class PurgeExpiredLocksTest(TestCase):
 
     async def test_purge_all_locks_with_custom_expiry(self):
         async with self.app.app_context():
-            PurgeExpiredLocks().run("all", 2)
-            self.assertLockState(
+            await purge_expired_locks_handler("all", 2)
+            await self.assertLockState(
                 [
                     ("events", "active_event_1", False),
                     ("events", "expired_event_1", False),
