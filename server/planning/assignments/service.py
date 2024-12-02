@@ -1,5 +1,5 @@
 from planning.core.service import BasePlanningAsyncService
 
 
-class AssingmentsAsyncService(BasePlanningAsyncService):
+class AssignmentsAsyncService(BasePlanningAsyncService):
     pass
