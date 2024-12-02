@@ -172,9 +172,9 @@ class CoverageInternalPlanning:
                 "include_in_parent": True,
                 "dynamic": False,
                 "properties": {
-                    "qcode": fields.Keyword,
-                    "name": fields.Keyword,
-                    "scheme": fields.Keyword,
+                    "qcode": {"type": "keyword"},
+                    "name": {"type": "keyword"},
+                    "scheme": {"type": "keyword"},
                 },
             }
         ),

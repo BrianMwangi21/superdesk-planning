@@ -152,7 +152,7 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
 
     # Event Details
     # NewsML-G2 Event properties See IPTC-G2-Implementation_Guide 15.2
-    name: str
+    name: str | None = None
     definition_short: str | None = None
     definition_long: str | None = None
     internal_note: str | None = None

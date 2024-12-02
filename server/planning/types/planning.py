@@ -93,7 +93,7 @@ class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
             {
                 "type": "nested",
                 "properties": {
-                    "coverage_id": fields.Keyword,
+                    "coverage_id": {"type": "keyword"},
                     "planning": {
                         "type": "object",
                         "properties": {
