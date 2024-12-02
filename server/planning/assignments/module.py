@@ -6,12 +6,12 @@ from superdesk.core.resources import (
 )
 
 from planning.types import AssignmentResourceModel
-from .service import AssingmentsAsyncService
+from .service import AssignmentsAsyncService
 
 assignments_resource_config = ResourceConfig(
     name="assignments",
     data_class=AssignmentResourceModel,
-    service=AssingmentsAsyncService,
+    service=AssignmentsAsyncService,
     etag_ignore_fields=["planning", "published_state", "published_at"],
     mongo=MongoResourceConfig(
         indexes=[
