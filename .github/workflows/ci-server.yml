@@ -3,17 +3,17 @@ name: "CI-Server"
 on: [push, pull_request]
 
 jobs:
-  server-nose:
+  server-pytest:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.10']
+        python-version: ['3.10']
     env:
       INSTALL_PY_MODULES: true
       RUN_SERVICES: true
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -24,17 +24,18 @@ jobs:
         run: ./scripts/ci-start-services.sh
       - name: Pytest
         run: pytest --log-level=ERROR --disable-warnings server/planning
+
   server-behave:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.10']
+        python-version: ['3.10']
     env:
       INSTALL_PY_MODULES: true
       RUN_SERVICES: true
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -51,14 +52,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.10']
+        python-version: ['3.10']
     env:
       INSTALL_PY_MODULES: true
       INSTALL_PY_EDITABLE: true
       RUN_SERVICES: true
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'

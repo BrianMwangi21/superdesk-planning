@@ -37,7 +37,7 @@ class OnclusiveApiServiceTestCase(unittest.TestCase):
 
     @responses.activate
     @patch("planning.feeding_services.onclusive_api_service.touch")
-    def test_update(self, lock_touch):
+    async def test_update(self, lock_touch):
         responses.post(
             url="https://api.abc.com/api/v2/auth",
             json={
@@ -54,7 +54,7 @@ class OnclusiveApiServiceTestCase(unittest.TestCase):
         )  # first returns an item
         responses.get("https://api.abc.com/api/v2/events/date", json=[])  # ones won't
 
-        with self.app.app_context():
+        async with self.app.app_context():
             updates = {}
             items = list(self.service._update(self.provider, updates))
             self.assertIn("tokens", updates)
@@ -77,8 +77,8 @@ class OnclusiveApiServiceTestCase(unittest.TestCase):
             self.assertEqual("refresh2", updates["tokens"]["refreshToken"])
 
     @patch("planning.feeding_services.onclusive_api_service.touch")
-    def test_reingest(self, lock_touch):
-        with self.app.app_context():
+    async def test_reingest(self, lock_touch):
+        async with self.app.app_context():
             start = datetime.now() - timedelta(days=30)
             self.provider["config"]["days_to_reingest"] = "30"
             self.provider["config"]["days_to_ingest"] = "10"

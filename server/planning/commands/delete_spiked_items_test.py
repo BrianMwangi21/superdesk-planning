@@ -67,8 +67,8 @@ expired = {
 
 
 class DeleteSpikedItemsTest(TestCase):
-    def setUp(self):
-        super().setUp()
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
 
         # Expire items that are scheduled more than 24 hours from now
         self.app.config.update({"PLANNING_DELETE_SPIKED_MINUTES": 1440})
@@ -102,10 +102,10 @@ class DeleteSpikedItemsTest(TestCase):
     def get_assignments_count(self):
         return (self.assignment_service.find({"_id": {"$exists": 1}})).count()
 
-    def test_delete_spike_disabled(self):
+    async def test_delete_spike_disabled(self):
         self.app.config.update({"PLANNING_DELETE_SPIKED_MINUTES": 0})
 
-        with self.app.app_context():
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -153,8 +153,8 @@ class DeleteSpikedItemsTest(TestCase):
 
             self.assertDeleteOperation("planning", ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], True)
 
-    def test_event(self):
-        with self.app.app_context():
+    async def test_event(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -168,8 +168,8 @@ class DeleteSpikedItemsTest(TestCase):
             self.assertDeleteOperation("events", ["e3"])
             self.assertDeleteOperation("events", ["e1", "e2"], not_deleted=True)
 
-    def test_event_series_expiry_check(self):
-        with self.app.app_context():
+    async def test_event_series_expiry_check(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -181,8 +181,8 @@ class DeleteSpikedItemsTest(TestCase):
             DeleteSpikedItems().run()
             self.assertDeleteOperation("events", ["e1", "e2", "e3"], not_deleted=True)
 
-    def test_event_series_spike_check(self):
-        with self.app.app_context():
+    async def test_event_series_spike_check(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -201,8 +201,8 @@ class DeleteSpikedItemsTest(TestCase):
             DeleteSpikedItems().run()
             self.assertDeleteOperation("events", ["e1", "e2"], not_deleted=True)
 
-    def test_event_series_successful_delete(self):
-        with self.app.app_context():
+    async def test_event_series_successful_delete(self):
+        async with self.app.app_context():
             self.insert(
                 "events",
                 [
@@ -221,8 +221,8 @@ class DeleteSpikedItemsTest(TestCase):
             DeleteSpikedItems().run()
             self.assertDeleteOperation("events", ["e1", "e2"])
 
-    def test_planning(self):
-        with self.app.app_context():
+    async def test_planning(self):
+        async with self.app.app_context():
             self.insert(
                 "planning",
                 [
@@ -261,8 +261,8 @@ class DeleteSpikedItemsTest(TestCase):
             self.assertDeleteOperation("planning", ["p1", "p2", "p3", "p4", "p6", "p8"], not_deleted=True)
             self.assertDeleteOperation("planning", ["p5", "p7"])
 
-    def test_planning_assignment_deletion(self):
-        with self.app.app_context():
+    async def test_planning_assignment_deletion(self):
+        async with self.app.app_context():
             self.app.data.insert("desks", [{"_id": "d1", "name": "d1"}, {"_id": "d2", "name": "d2"}])
             self.insert(
                 "planning",

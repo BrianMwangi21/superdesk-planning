@@ -139,6 +139,8 @@ INSTALLED_PLUGINS = ["planning"]
 
 INSTALLED_APPS.extend(INSTALLED_PLUGINS)
 
+MODULES = ["planning"]
+
 RENDITIONS = {
     "picture": {
         "thumbnail": {"width": 220, "height": 120},

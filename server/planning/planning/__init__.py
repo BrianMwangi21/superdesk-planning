@@ -42,6 +42,15 @@ from .planning_featured_lock import (
 from .planning_featured import PlanningFeaturedResource, PlanningFeaturedService
 from .planning_files import PlanningFilesResource, PlanningFilesService
 
+from .module import planning_resource_config
+from .service import PlanningAsyncService
+
+
+__all__ = [
+    "planning_resource_config",
+    "PlanningAsyncService",
+]
+
 
 def init_app(app):
     """Initialize planning.

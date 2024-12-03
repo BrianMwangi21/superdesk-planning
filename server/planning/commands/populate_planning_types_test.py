@@ -47,9 +47,9 @@ class AppPopulatePlanningTypesTest(TestCase):
         with open(self.filename, "w+") as file:
             json.dump(self.json_data, file)
 
-    def test_populate_types(self):
+    async def test_populate_types(self):
         cmd = AppPopulateCommand()
-        with self.app.app_context():
+        async with self.app.app_context():
             service = get_resource_service("planning_types")
             cmd.run(self.filename)
 

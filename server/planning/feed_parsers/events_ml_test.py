@@ -27,8 +27,8 @@ class EventsMLFeedParserTestCase(TestCase):
         with open(fixture, "rb") as f:
             self.xml = etree.parse(f)
 
-    def _add_cvs(self):
-        with self.app.app_context():
+    async def _add_cvs(self):
+        async with self.app.app_context():
             self.app.data.insert(
                 "vocabularies",
                 [
@@ -86,36 +86,38 @@ class EventsMLFeedParserTestCase(TestCase):
                 ],
             )
 
-    def test_can_parse(self):
-        self._load_fixture("events_ml_259625.xml")
-        self.assertTrue(EventsMLParser().can_parse(self.xml.getroot()))
+    async def test_can_parse(self):
+        async with self.app.app_context():
+            self._load_fixture("events_ml_259625.xml")
+            self.assertTrue(EventsMLParser().can_parse(self.xml.getroot()))
 
-        self._load_fixture("planning.xml")
-        self.assertFalse(EventsMLParser().can_parse(self.xml.getroot()))
+            self._load_fixture("planning.xml")
+            self.assertFalse(EventsMLParser().can_parse(self.xml.getroot()))
 
-    def test_content(self):
-        self._load_fixture("events_ml_259625.xml")
-        self._add_cvs()
-        item = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
+    async def test_content(self):
+        async with self.app.app_context():
+            self._load_fixture("events_ml_259625.xml")
+            self._add_cvs()
+            item = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
 
-        self.assertEqual(item[GUID_FIELD], "urn:newsml:stt.fi:20220705:259625")
-        self.assertEqual(item[ITEM_TYPE], CONTENT_TYPE.EVENT)
-        self.assertEqual(item["state"], CONTENT_STATE.INGESTED)
-        self.assertEqual(item["firstcreated"], datetime(2022, 3, 30, 8, 48, 49, tzinfo=tzoffset(None, 10800)))
-        self.assertEqual(item["versioncreated"], datetime(2022, 3, 30, 9, 31, 13, tzinfo=tzoffset(None, 10800)))
+            self.assertEqual(item[GUID_FIELD], "urn:newsml:stt.fi:20220705:259625")
+            self.assertEqual(item[ITEM_TYPE], CONTENT_TYPE.EVENT)
+            self.assertEqual(item["state"], CONTENT_STATE.INGESTED)
+            self.assertEqual(item["firstcreated"], datetime(2022, 3, 30, 8, 48, 49, tzinfo=tzoffset(None, 10800)))
+            self.assertEqual(item["versioncreated"], datetime(2022, 3, 30, 9, 31, 13, tzinfo=tzoffset(None, 10800)))
 
-        self.assertEqual(item["occur_status"]["qcode"], "eocstat:eos5")
-        self.assertEqual(item["language"], "fi-FI")
-        self.assertEqual(item["name"], "Pesäpallo: Miesten Superpesis, klo 18 Hyvinkää-Kankaanpää")
+            self.assertEqual(item["occur_status"]["qcode"], "eocstat:eos5")
+            self.assertEqual(item["language"], "fi-FI")
+            self.assertEqual(item["name"], "Pesäpallo: Miesten Superpesis, klo 18 Hyvinkää-Kankaanpää")
 
-        self.assertIn("www.pesis.fi", item["links"])
-        self.assertIn("www.hyvinkaantahko.fi", item["links"])
+            self.assertIn("www.pesis.fi", item["links"])
+            self.assertIn("www.hyvinkaantahko.fi", item["links"])
 
-        self.assertEqual(item["subject"], [])
+            self.assertEqual(item["subject"], [])
 
-        self.assertEqual(item["dates"]["tz"], self.app.config["DEFAULT_TIMEZONE"])
-        self.assertEqual(item["dates"]["start"], datetime(2022, 7, 5, 15, 0, tzinfo=utc))
-        self.assertEqual(item["dates"]["end"], datetime(2022, 7, 5, 16, tzinfo=utc))
+            self.assertEqual(item["dates"]["tz"], self.app.config["DEFAULT_TIMEZONE"])
+            self.assertEqual(item["dates"]["start"], datetime(2022, 7, 5, 15, 0, tzinfo=utc))
+            self.assertEqual(item["dates"]["end"], datetime(2022, 7, 5, 16, tzinfo=utc))
 
     def test_get_datetime_str_parts(self):
         parser = EventsMLParser()
@@ -127,77 +129,80 @@ class EventsMLFeedParserTestCase(TestCase):
         self.assertEqual("2022-07-05T18:00:00+02:00", get_dt_str("2022-07-05T18:00:00", "00:00:00", tz))
         self.assertEqual("2022-07-05T00:00:00+02:00", get_dt_str("2022-07-05", "00:00:00", tz))
 
-    def test_parse_event_schedule(self):
-        self._load_fixture("events_ml_259625.xml")
-        parser = EventsMLParser()
-        item = {}
+    async def test_parse_event_schedule(self):
+        async with self.app.app_context():
+            self._load_fixture("events_ml_259625.xml")
+            parser = EventsMLParser()
+            item = {}
 
-        def get_item_dates(start: str, end: Optional[str] = None):
-            root = self.xml.getroot()
-            parser.root = root
+            def get_item_dates(start: str, end: Optional[str] = None):
+                root = self.xml.getroot()
+                parser.root = root
 
-            dates = root.find(parser.qname("concept")).find(parser.qname("eventDetails")).find(parser.qname("dates"))
-            for child in list(dates):
-                dates.remove(child)
+                dates = (
+                    root.find(parser.qname("concept")).find(parser.qname("eventDetails")).find(parser.qname("dates"))
+                )
+                for child in list(dates):
+                    dates.remove(child)
 
-            etree.SubElement(dates, parser.qname("start")).text = start
-            if end is not None:
-                etree.SubElement(dates, parser.qname("end")).text = end
+                etree.SubElement(dates, parser.qname("start")).text = start
+                if end is not None:
+                    etree.SubElement(dates, parser.qname("end")).text = end
 
-            item.clear()
-            parser.parse_event_schedule(dates, item)
-            return item["dates"]
+                item.clear()
+                parser.parse_event_schedule(dates, item)
+                return item["dates"]
 
-        # Full start/end date supplied, including UTC offset
-        self.assertEqual(
-            get_item_dates("2022-07-05T18:00:00+03:00", "2022-07-05T20:00:00+03:00"),
-            dict(
-                start=datetime(2022, 7, 5, 15, 0, tzinfo=utc),
-                end=datetime(2022, 7, 5, 17, 0, tzinfo=utc),
-                tz=self.app.config["DEFAULT_TIMEZONE"],
-                all_day=False,
-                no_end_time=False,
-            ),
-        )
+            # Full start/end date supplied, including UTC offset
+            self.assertEqual(
+                get_item_dates("2022-07-05T18:00:00+03:00", "2022-07-05T20:00:00+03:00"),
+                dict(
+                    start=datetime(2022, 7, 5, 15, 0, tzinfo=utc),
+                    end=datetime(2022, 7, 5, 17, 0, tzinfo=utc),
+                    tz=self.app.config["DEFAULT_TIMEZONE"],
+                    all_day=False,
+                    no_end_time=False,
+                ),
+            )
 
-        # Only start date & time supplied, with time NOT midnight in local time
-        self.assertEqual(
-            get_item_dates("2022-07-05T18:00:00+03:00"),
-            dict(
-                start=datetime(2022, 7, 5, 15, 0, tzinfo=utc),
-                end=datetime(2022, 7, 5, 16, 0, tzinfo=utc),
-                tz=self.app.config["DEFAULT_TIMEZONE"],
-                all_day=False,
-                no_end_time=False,
-            ),
-        )
+            # Only start date & time supplied, with time NOT midnight in local time
+            self.assertEqual(
+                get_item_dates("2022-07-05T18:00:00+03:00"),
+                dict(
+                    start=datetime(2022, 7, 5, 15, 0, tzinfo=utc),
+                    end=datetime(2022, 7, 5, 16, 0, tzinfo=utc),
+                    tz=self.app.config["DEFAULT_TIMEZONE"],
+                    all_day=False,
+                    no_end_time=False,
+                ),
+            )
 
-        # Only start date supplied, with time defaulting to midnight local time
-        self.assertEqual(
-            get_item_dates("2022-07-05"),
-            dict(
-                start=datetime(2022, 7, 5, 0, 0, tzinfo=utc),
-                end=datetime(2022, 7, 5, 23, 59, 59, tzinfo=utc),
-                all_day=True,
-                no_end_time=False,
-                tz=None,
-            ),
-        )
+            # Only start date supplied, with time defaulting to midnight local time
+            self.assertEqual(
+                get_item_dates("2022-07-05"),
+                dict(
+                    start=datetime(2022, 7, 5, 0, 0, tzinfo=utc),
+                    end=datetime(2022, 7, 5, 23, 59, 59, tzinfo=utc),
+                    all_day=True,
+                    no_end_time=False,
+                    tz=None,
+                ),
+            )
 
-        # Only start & end dates supplied, with start time defaulting to midnight local time
-        # and end time defaulting to end of the day, local time
-        self.assertEqual(
-            get_item_dates("2022-07-05", "2022-07-07"),
-            dict(
-                start=datetime(2022, 7, 5, 0, 0, tzinfo=utc),
-                end=datetime(2022, 7, 7, 23, 59, 59, tzinfo=utc),
-                all_day=True,
-                no_end_time=False,
-                tz=None,
-            ),
-        )
+            # Only start & end dates supplied, with start time defaulting to midnight local time
+            # and end time defaulting to end of the day, local time
+            self.assertEqual(
+                get_item_dates("2022-07-05", "2022-07-07"),
+                dict(
+                    start=datetime(2022, 7, 5, 0, 0, tzinfo=utc),
+                    end=datetime(2022, 7, 7, 23, 59, 59, tzinfo=utc),
+                    all_day=True,
+                    no_end_time=False,
+                    tz=None,
+                ),
+            )
 
-    def test_editor_3_fields(self):
+    async def test_editor_3_fields(self):
         self._load_fixture("events_ml_259625.xml")
         self._add_cvs()
         url = "https://www.eurooppamarkkinat.fi/"
@@ -211,7 +216,7 @@ class EventsMLFeedParserTestCase(TestCase):
         self.assertNotIn("registration_details", item)
 
         # Re-test the same fields configured with Editor3
-        with self.app.app_context():
+        async with self.app.app_context():
             self.app.data.insert(
                 "planning_types",
                 [
@@ -250,100 +255,103 @@ class EventsMLFeedParserTestCase(TestCase):
         self.assertTrue(item["registration_details"].startswith("<p>"))
         self.assertIn('<a href="mailto:baz@foobar.com">baz@foobar.com</a>', item["registration_details"])
 
-    def test_update_event(self):
-        service = get_resource_service("events")
-        self._load_fixture("events_ml_259625.xml")
-        self._add_cvs()
-        source = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
-        provider = {
-            "_id": "abcd",
-            "source": "sf",
-            "name": "EventsML Ingest",
-        }
+    async def test_update_event(self):
+        async with self.app.app_context():
+            service = get_resource_service("events")
+            self._load_fixture("events_ml_259625.xml")
+            self._add_cvs()
+            source = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
+            provider = {
+                "_id": "abcd",
+                "source": "sf",
+                "name": "EventsML Ingest",
+            }
 
-        # Ingest first version
-        ingested, ids = ingest_item(source, provider=provider, feeding_service={})
-        self.assertTrue(ingested)
-        self.assertIn(source["guid"], ids)
-        dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
-        self.assertEqual(dest["name"], "Pesäpallo: Miesten Superpesis, klo 18 Hyvinkää-Kankaanpää")
+            # Ingest first version
+            ingested, ids = ingest_item(source, provider=provider, feeding_service={})
+            self.assertTrue(ingested)
+            self.assertIn(source["guid"], ids)
+            dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
+            self.assertEqual(dest["name"], "Pesäpallo: Miesten Superpesis, klo 18 Hyvinkää-Kankaanpää")
 
-        # Attempt to update with same version
-        source["ingest_versioncreated"] += timedelta(hours=1)
-        source["versioncreated"] = source["ingest_versioncreated"]
-        source["name"] = "Test name"
-        provider["disable_item_updates"] = True
-        ingested, ids = ingest_item(source, provider=provider, feeding_service={})
-        self.assertFalse(ingested)
+            # Attempt to update with same version
+            source["ingest_versioncreated"] += timedelta(hours=1)
+            source["versioncreated"] = source["ingest_versioncreated"]
+            source["name"] = "Test name"
+            provider["disable_item_updates"] = True
+            ingested, ids = ingest_item(source, provider=provider, feeding_service={})
+            self.assertFalse(ingested)
 
-        # Attempt to update with a new version
-        provider.pop("disable_item_updates")
-        ingested, ids = ingest_item(source, provider=provider, feeding_service={})
-        self.assertTrue(ingested)
-        self.assertIn(source["guid"], ids)
-        dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
-        self.assertEqual(dest["name"], "Test name")
+            # Attempt to update with a new version
+            provider.pop("disable_item_updates")
+            ingested, ids = ingest_item(source, provider=provider, feeding_service={})
+            self.assertTrue(ingested)
+            self.assertIn(source["guid"], ids)
+            dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
+            self.assertEqual(dest["name"], "Test name")
 
-    def test_update_published_event(self):
-        service = get_resource_service("events")
-        published_service = get_resource_service("published_planning")
+    async def test_update_published_event(self):
+        async with self.app.app_context():
+            service = get_resource_service("events")
+            published_service = get_resource_service("published_planning")
 
-        self._load_fixture("events_ml_259625.xml")
-        self._add_cvs()
-        original_source = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
-        source = deepcopy(original_source)
-        provider = {
-            "_id": "abcd",
-            "source": "sf",
-            "name": "EventsML Ingest",
-        }
+            self._load_fixture("events_ml_259625.xml")
+            self._add_cvs()
+            original_source = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
+            source = deepcopy(original_source)
+            provider = {
+                "_id": "abcd",
+                "source": "sf",
+                "name": "EventsML Ingest",
+            }
 
-        # Ingest first version
-        ingest_item(source, provider=provider, feeding_service={})
+            # Ingest first version
+            ingest_item(source, provider=provider, feeding_service={})
 
-        # Publish the Event
-        service.patch(
-            source["guid"],
-            {
-                "pubstatus": POST_STATE.USABLE,
-                "state": CONTENT_STATE.SCHEDULED,
-            },
-        )
+            # Publish the Event
+            service.patch(
+                source["guid"],
+                {
+                    "pubstatus": POST_STATE.USABLE,
+                    "state": CONTENT_STATE.SCHEDULED,
+                },
+            )
 
-        # Make sure the Event has been added to the ``published_planning`` collection
-        self.assertEqual(published_service.get(req=None, lookup={"item_id": source["guid"]}).count(), 1)
-        dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
-        self.assertEqual(dest["state"], CONTENT_STATE.SCHEDULED)
-        self.assertEqual(dest["pubstatus"], POST_STATE.USABLE)
+            # Make sure the Event has been added to the ``published_planning`` collection
+            self.assertEqual(published_service.get(req=None, lookup={"item_id": source["guid"]}).count(), 1)
+            dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
+            self.assertEqual(dest["state"], CONTENT_STATE.SCHEDULED)
+            self.assertEqual(dest["pubstatus"], POST_STATE.USABLE)
 
-        # Ingest a new version of the item, and make sure the item is re-published
-        source = deepcopy(original_source)
-        source["versioncreated"] += timedelta(hours=1)
-        ingest_item(source, provider=provider, feeding_service={})
-        self.assertEqual(published_service.get(req=None, lookup={"item_id": source["guid"]}).count(), 2)
-        dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
+            # Ingest a new version of the item, and make sure the item is re-published
+            source = deepcopy(original_source)
+            source["versioncreated"] += timedelta(hours=1)
+            ingest_item(source, provider=provider, feeding_service={})
+            self.assertEqual(published_service.get(req=None, lookup={"item_id": source["guid"]}).count(), 2)
+            dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
 
-        # Make sure the item state has not changed after ingest
-        self.assertEqual(dest["state"], CONTENT_STATE.SCHEDULED)
-        self.assertEqual(dest["pubstatus"], POST_STATE.USABLE)
+            # Make sure the item state has not changed after ingest
+            self.assertEqual(dest["state"], CONTENT_STATE.SCHEDULED)
+            self.assertEqual(dest["pubstatus"], POST_STATE.USABLE)
 
-        # Ingest another version, this time cancel the item
-        source = deepcopy(original_source)
-        source["versioncreated"] += timedelta(hours=2)
-        source["pubstatus"] = POST_STATE.CANCELLED
-        ingest_item(source, provider=provider, feeding_service={})
-        self.assertEqual(published_service.get(req=None, lookup={"item_id": source["guid"]}).count(), 3)
-        dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
+            # Ingest another version, this time cancel the item
+            source = deepcopy(original_source)
+            source["versioncreated"] += timedelta(hours=2)
+            source["pubstatus"] = POST_STATE.CANCELLED
+            ingest_item(source, provider=provider, feeding_service={})
+            self.assertEqual(published_service.get(req=None, lookup={"item_id": source["guid"]}).count(), 3)
+            dest = list(service.get_from_mongo(req=None, lookup={"guid": source["guid"]}))[0]
 
-        # Make sure the item state was changed after ingest
-        self.assertEqual(dest["state"], CONTENT_STATE.KILLED)
-        self.assertEqual(dest["pubstatus"], POST_STATE.CANCELLED)
+            # Make sure the item state was changed after ingest
+            self.assertEqual(dest["state"], CONTENT_STATE.KILLED)
+            self.assertEqual(dest["pubstatus"], POST_STATE.CANCELLED)
 
-    def test_parse_dates(self):
-        self._load_fixture("events_ml_259270.xml")
-        self._add_cvs()
-        source = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
-        dates = source["dates"]
-        self.assertTrue(dates["all_day"])
-        self.assertEqual(datetime(2022, 11, 10, tzinfo=utc), dates["start"])
-        self.assertEqual(datetime(2022, 11, 11, 23, 59, 59, tzinfo=utc), dates["end"])
+    async def test_parse_dates(self):
+        async with self.app.app_context():
+            self._load_fixture("events_ml_259270.xml")
+            self._add_cvs()
+            source = EventsMLParser().parse(self.xml.getroot(), {"name": "Test"})[0]
+            dates = source["dates"]
+            self.assertTrue(dates["all_day"])
+            self.assertEqual(datetime(2022, 11, 10, tzinfo=utc), dates["start"])
+            self.assertEqual(datetime(2022, 11, 11, 23, 59, 59, tzinfo=utc), dates["end"])

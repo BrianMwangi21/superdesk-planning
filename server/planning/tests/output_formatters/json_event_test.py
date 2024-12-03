@@ -87,7 +87,8 @@ class JsonEventTestCase(TestCase):
         "language": "en",
     }
 
-    def setUp(self):
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
         init_app(self.app)
         self.maxDiff = None
         contact = [
@@ -139,47 +140,49 @@ class JsonEventTestCase(TestCase):
             ],
         )
 
-    def test_formatter(self):
-        formatter = JsonEventFormatter()
-        output = formatter.format(self.item, {"name": "Test Subscriber"})[0]
-        output_item = json.loads(output[1])
-        self.assertEqual(output_item.get("name"), "Name of the event")
-        self.assertEqual(output_item.get("event_contact_info")[0].get("last_name"), "Doe")
-        self.assertEqual(output_item.get("internal_note"), "An internal Note")
-        self.assertEqual(output_item.get("ednote"), "An editorial Note")
-        self.assertEqual(output_item.get("products"), [{"code": 201, "name": "p-1"}])
-        self.assertEqual(output_item.get("subject")[0]["name"], "Tourism")
-        self.assertEqual(output_item.get("calendars")[0]["name"], "Holidays Calendar")
-        self.assertEqual(output_item.get("anpa_category")[0]["name"], "News")
-        self.assertEqual(output_item.get("language"), "en")
+    async def test_formatter(self):
+        async with self.app.app_context():
+            formatter = JsonEventFormatter()
+            output = formatter.format(self.item, {"name": "Test Subscriber"})[0]
+            output_item = json.loads(output[1])
+            self.assertEqual(output_item.get("name"), "Name of the event")
+            self.assertEqual(output_item.get("event_contact_info")[0].get("last_name"), "Doe")
+            self.assertEqual(output_item.get("internal_note"), "An internal Note")
+            self.assertEqual(output_item.get("ednote"), "An editorial Note")
+            self.assertEqual(output_item.get("products"), [{"code": 201, "name": "p-1"}])
+            self.assertEqual(output_item.get("subject")[0]["name"], "Tourism")
+            self.assertEqual(output_item.get("calendars")[0]["name"], "Holidays Calendar")
+            self.assertEqual(output_item.get("anpa_category")[0]["name"], "News")
+            self.assertEqual(output_item.get("language"), "en")
 
-    def test_files_publishing(self):
-        init_app(self.app)
-        with tempfile.NamedTemporaryFile(suffix="txt") as input:
-            input.write("foo".encode("utf-8"))
-            input.seek(0)
-            input.filename = "foo.txt"
-            input.mimetype = "text/plain"
-            attachment = {"media": input}
-            store_media_files(attachment, "events_files")
-            files_ids = self.app.data.insert("events_files", [attachment])
-        item = self.item.copy()
-        item["files"] = files_ids
+    async def test_files_publishing(self):
+        async with self.app.app_context():
+            init_app(self.app)
+            with tempfile.NamedTemporaryFile(suffix="txt") as input:
+                input.write("foo".encode("utf-8"))
+                input.seek(0)
+                input.filename = "foo.txt"
+                input.mimetype = "text/plain"
+                attachment = {"media": input}
+                store_media_files(attachment, "events_files")
+                files_ids = self.app.data.insert("events_files", [attachment])
+            item = self.item.copy()
+            item["files"] = files_ids
 
-        subscriber = {"name": "Test Subscriber", "is_active": True}
-        destination = {"delivery_type": "http_push"}
-        formatter = JsonEventFormatter()
-        formatter.set_destination(destination, subscriber)
-        output = formatter.format(item, subscriber)[0]
+            subscriber = {"name": "Test Subscriber", "is_active": True}
+            destination = {"delivery_type": "http_push"}
+            formatter = JsonEventFormatter()
+            formatter.set_destination(destination, subscriber)
+            output = formatter.format(item, subscriber)[0]
 
-        output_item = json.loads(output[1])
-        self.assertEqual(1, len(output_item["files"]))
-        self.assertEqual(
-            {
-                "name": "foo.txt",
-                "length": 3,
-                "mimetype": "text/plain",
-                "media": str(self.app.data.find_one("events_files", req=None, _id=files_ids[0]).get("media")),
-            },
-            output_item["files"][0],
-        )
+            output_item = json.loads(output[1])
+            self.assertEqual(1, len(output_item["files"]))
+            self.assertEqual(
+                {
+                    "name": "foo.txt",
+                    "length": 3,
+                    "mimetype": "text/plain",
+                    "media": str(self.app.data.find_one("events_files", req=None, _id=files_ids[0]).get("media")),
+                },
+                output_item["files"][0],
+            )

@@ -16,7 +16,7 @@ from bson import ObjectId
 
 
 class AssignmentAcceptTestCase(TestCase):
-    def test_accept(self):
+    async def test_accept(self):
         assignment_id = "5b20652a1d41c812e24aa49e"
 
         users = [
@@ -37,7 +37,7 @@ class AssignmentAcceptTestCase(TestCase):
             "planning": {"g2_content_type": "picture", "slugline": "Accept Test"},
         }
 
-        with self.app.app_context():
+        async with self.app.app_context():
             self.app.data.insert("users", users)
             self.app.data.insert("assignments", [assignment])
             get_resource_service("assignments").accept_assignment(ObjectId(assignment_id), users[0].get("_id"))
@@ -56,7 +56,7 @@ class AssignmentAcceptTestCase(TestCase):
             history = self.app.data.find("assignments_history", None, None)[0]
             self.assertEqual(history[0].get("operation"), "accepted")
 
-    def test_external(self):
+    async def test_external(self):
         assignment_id = "5b20652a1d41c812e24aa49e"
 
         users = [{"_id": ObjectId()}]
@@ -77,7 +77,7 @@ class AssignmentAcceptTestCase(TestCase):
             "planning": {"g2_content_type": "picture", "slugline": "Accept Test"},
         }
 
-        with self.app.app_context():
+        async with self.app.app_context():
             self.app.data.insert("users", users)
             self.app.data.insert("assignments", [assignment])
             self.app.data.insert("contacts", contact)

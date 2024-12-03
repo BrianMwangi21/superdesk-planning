@@ -44,6 +44,14 @@ from .events_template import (
 )
 from planning.autosave import AutosaveService
 
+from .service import EventsAsyncService
+from .module import events_resource_config
+
+__all__ = [
+    "EventsAsyncService",
+    "events_resource_config",
+]
+
 
 def init_app(app):
     """Initialize events

@@ -48,8 +48,8 @@ class DeleteMarkedAssignmentsTest(TestCase):
             else:
                 self.assertIsNone(assignment)
 
-    def test_delete_marked_assignments(self):
-        with self.app.app_context():
+    async def test_delete_marked_assignments(self):
+        async with self.app.app_context():
             self.app.data.insert("users", self.users)
             self.app.data.insert("auth", self.auth)
             self.app.data.insert("planning", self.plans)

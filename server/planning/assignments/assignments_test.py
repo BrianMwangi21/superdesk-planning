@@ -59,9 +59,9 @@ class AssignmentsTestCase(TestCase):
         "item_id": "item1",
     }
 
-    def setUp(self):
-        super().setUp()
-        with self.app.app_context():
+    async def asyncSetUp(self):
+        await super().asyncSetUp()
+        async with self.app.app_context():
             self.app.data.insert("users", self.users)
             self.app.data.insert("auth", self.auth)
             self.app.data.insert("archive", [self.archive_item])
@@ -69,8 +69,8 @@ class AssignmentsTestCase(TestCase):
             self.app.data.insert("planning", [self.planning_item])
             self.app.data.insert("delivery", [self.delivery_item])
 
-    def test_delivery_record_deleted(self):
-        with self.app.app_context():
+    async def test_delivery_record_deleted(self):
+        async with self.app.app_context():
             g.user = self.users[0]
             g.auth = self.auth[0]
             delivery_service = get_resource_service("delivery")

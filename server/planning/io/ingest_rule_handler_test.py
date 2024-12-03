@@ -82,80 +82,86 @@ class IngestRuleHandlerTestCase(TestCase):
         self.assertTrue(self.handler.can_handle({}, {ITEM_TYPE: CONTENT_TYPE.PLANNING}, {}))
         self.assertFalse(self.handler.can_handle({}, {ITEM_TYPE: CONTENT_TYPE.TEXT}, {}))
 
-    def test_adds_event_calendars(self):
-        self.app.data.insert(
-            "vocabularies",
-            [
-                {
-                    "_id": "event_calendars",
-                    "items": self.calendars,
-                }
-            ],
-        )
-        event = self.event_items[0]
-        self.app.data.insert("events", [event])
-        original = self.app.data.find_one("events", req=None, _id=event["_id"])
+    async def test_adds_event_calendars(self):
+        async with self.app.app_context():
+            self.app.data.insert(
+                "vocabularies",
+                [
+                    {
+                        "_id": "event_calendars",
+                        "items": self.calendars,
+                    }
+                ],
+            )
+            event = self.event_items[0]
+            self.app.data.insert("events", [event])
+            original = self.app.data.find_one("events", req=None, _id=event["_id"])
 
-        self.handler.apply_rule({"actions": {"extra": {"calendars": [self.calendars[0]["qcode"]]}}}, event, {})
+            self.handler.apply_rule({"actions": {"extra": {"calendars": [self.calendars[0]["qcode"]]}}}, event, {})
 
-        updated = self.app.data.find_one("events", req=None, _id=event["_id"])
-        self.assertNotEqual(original["_etag"], updated["_etag"])
+            updated = self.app.data.find_one("events", req=None, _id=event["_id"])
+            self.assertNotEqual(original["_etag"], updated["_etag"])
 
-        calendars = [calendar["qcode"] for calendar in updated["calendars"]]
-        self.assertEqual(len(calendars), 1)
-        self.assertEqual(calendars[0], "sports")
+            calendars = [calendar["qcode"] for calendar in updated["calendars"]]
+            self.assertEqual(len(calendars), 1)
+            self.assertEqual(calendars[0], "sports")
 
-    def test_skips_disabled_and_existing_calendars(self):
-        self.app.data.insert(
-            "vocabularies",
-            [
-                {
-                    "_id": "event_calendars",
-                    "items": self.calendars,
-                }
-            ],
-        )
-        event = self.event_items[1]
-        self.app.data.insert("events", [event])
-        original = self.app.data.find_one("events", req=None, _id=event["_id"])
+    async def test_skips_disabled_and_existing_calendars(self):
+        async with self.app.app_context():
+            self.app.data.insert(
+                "vocabularies",
+                [
+                    {
+                        "_id": "event_calendars",
+                        "items": self.calendars,
+                    }
+                ],
+            )
+            event = self.event_items[1]
+            self.app.data.insert("events", [event])
+            original = self.app.data.find_one("events", req=None, _id=event["_id"])
 
-        self.handler.apply_rule(
-            {"actions": {"extra": {"calendars": [self.calendars[0]["qcode"], self.calendars[1]["qcode"]]}}}, event, {}
-        )
+            self.handler.apply_rule(
+                {"actions": {"extra": {"calendars": [self.calendars[0]["qcode"], self.calendars[1]["qcode"]]}}},
+                event,
+                {},
+            )
 
-        updated = self.app.data.find_one("events", req=None, _id=event["_id"])
-        self.assertEqual(original["_etag"], updated["_etag"])
+            updated = self.app.data.find_one("events", req=None, _id=event["_id"])
+            self.assertEqual(original["_etag"], updated["_etag"])
 
-        calendars = [calendar["qcode"] for calendar in updated["calendars"]]
-        self.assertEqual(len(calendars), 1)
-        self.assertEqual(calendars[0], "sports")
+            calendars = [calendar["qcode"] for calendar in updated["calendars"]]
+            self.assertEqual(len(calendars), 1)
+            self.assertEqual(calendars[0], "sports")
 
-    def test_adds_planning_agendas(self):
-        self.app.data.insert("agenda", self.agendas)
-        plan = self.planning_items[0]
-        self.app.data.insert("planning", [plan])
-        original = self.app.data.find_one("planning", req=None, _id=plan["_id"])
+    async def test_adds_planning_agendas(self):
+        async with self.app.app_context():
+            self.app.data.insert("agenda", self.agendas)
+            plan = self.planning_items[0]
+            self.app.data.insert("planning", [plan])
+            original = self.app.data.find_one("planning", req=None, _id=plan["_id"])
 
-        self.handler.apply_rule({"actions": {"extra": {"agendas": [self.agendas[0]["_id"]]}}}, plan, {})
+            self.handler.apply_rule({"actions": {"extra": {"agendas": [self.agendas[0]["_id"]]}}}, plan, {})
 
-        updated = self.app.data.find_one("planning", req=None, _id=plan["_id"])
-        self.assertNotEqual(original["_etag"], updated["_etag"])
+            updated = self.app.data.find_one("planning", req=None, _id=plan["_id"])
+            self.assertNotEqual(original["_etag"], updated["_etag"])
 
-        self.assertEqual(len(updated["agendas"]), 1)
-        self.assertEqual(updated["agendas"][0], self.agendas[0]["_id"])
+            self.assertEqual(len(updated["agendas"]), 1)
+            self.assertEqual(updated["agendas"][0], self.agendas[0]["_id"])
 
-    def test_skips_disabled_and_existing_agendas(self):
-        self.app.data.insert("agenda", self.agendas)
-        plan = self.planning_items[1]
-        self.app.data.insert("planning", [plan])
-        original = self.app.data.find_one("planning", req=None, _id=plan["_id"])
+    async def test_skips_disabled_and_existing_agendas(self):
+        async with self.app.app_context():
+            self.app.data.insert("agenda", self.agendas)
+            plan = self.planning_items[1]
+            self.app.data.insert("planning", [plan])
+            original = self.app.data.find_one("planning", req=None, _id=plan["_id"])
 
-        self.handler.apply_rule(
-            {"actions": {"extra": {"agendas": [self.agendas[0]["_id"], self.agendas[1]["_id"]]}}}, plan, {}
-        )
+            self.handler.apply_rule(
+                {"actions": {"extra": {"agendas": [self.agendas[0]["_id"], self.agendas[1]["_id"]]}}}, plan, {}
+            )
 
-        updated = self.app.data.find_one("planning", req=None, _id=plan["_id"])
-        self.assertEqual(original["_etag"], updated["_etag"])
+            updated = self.app.data.find_one("planning", req=None, _id=plan["_id"])
+            self.assertEqual(original["_etag"], updated["_etag"])
 
-        self.assertEqual(len(updated["agendas"]), 1)
-        self.assertEqual(updated["agendas"][0], self.agendas[0]["_id"])
+            self.assertEqual(len(updated["agendas"]), 1)
+            self.assertEqual(updated["agendas"][0], self.agendas[0]["_id"])

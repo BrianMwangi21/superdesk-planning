@@ -4,7 +4,7 @@ from planning.common import update_post_item
 
 
 class IngestCancelledTestCase(TestCase):
-    def test_ingest_cancelled_event(self):
+    async def test_ingest_cancelled_event(self):
         assert not request, request
 
         assignments = [
@@ -29,7 +29,7 @@ class IngestCancelledTestCase(TestCase):
 
         self.app.data.insert("planning", [planning])
 
-        with self.app.app_context():
+        async with self.app.app_context():
             update_post_item({"pubstatus": "cancelled"}, planning)
 
         cursor, count = self.app.data.find("assignments", req=None, lookup={})
