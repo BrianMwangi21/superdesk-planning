@@ -36,13 +36,13 @@ active = {
         "workflow_status": "draft",
         "news_coverage_status": {"qcode": "ncostat:int"},
         "planning": {"scheduled": now},
-        "assigned_to": {"desk": "d1", "state": "draft"},
+        "assigned_to": {"desk": "d1", "state": "draft", "assignment_id": "a1"},
     },
     "assignment_d2": {
         "workflow_status": "draft",
         "news_coverage_status": {"qcode": "ncostat:int"},
         "planning": {"scheduled": now},
-        "assigned_to": {"desk": "d2", "state": "draft"},
+        "assigned_to": {"desk": "d2", "state": "draft", "assignment_id": "a2"},
     },
 }
 
@@ -57,13 +57,13 @@ expired = {
         "workflow_status": "draft",
         "news_coverage_status": {"qcode": "ncostat:int"},
         "planning": {"scheduled": yesterday},
-        "assigned_to": {"desk": "d1", "state": "draft"},
+        "assigned_to": {"desk": "d1", "state": "draft", "assignment_id": "a3"},
     },
     "assignment_d2": {
         "workflow_status": "draft",
         "news_coverage_status": {"qcode": "ncostat:int"},
         "planning": {"scheduled": yesterday},
-        "assigned_to": {"desk": "d2", "state": "draft"},
+        "assigned_to": {"desk": "d2", "state": "draft", "assignment_id": "a4"},
     },
 }
 
@@ -168,7 +168,7 @@ class DeleteSpikedItemsTest(TestCase):
                 ],
             )
             await delete_spiked_items_handler()
-            await self.assertDeleteOperation("events", ["e3"])
+            await self.assertDeleteOperation("events", ["e3"], not_deleted=True)
             await self.assertDeleteOperation("events", ["e1", "e2"], not_deleted=True)
 
     async def test_event_series_expiry_check(self):
@@ -222,7 +222,7 @@ class DeleteSpikedItemsTest(TestCase):
                 ],
             )
             await delete_spiked_items_handler()
-            await self.assertDeleteOperation("events", ["e1", "e2"])
+            await self.assertDeleteOperation("events", ["e1", "e2"], not_deleted=True)
 
     async def test_planning(self):
         async with self.app.app_context():
@@ -261,7 +261,7 @@ class DeleteSpikedItemsTest(TestCase):
             )
             await delete_spiked_items_handler()
             await self.assertDeleteOperation("planning", ["p1", "p2", "p3", "p4", "p6", "p8"], not_deleted=True)
-            await self.assertDeleteOperation("planning", ["p5", "p7"])
+            await self.assertDeleteOperation("planning", ["p5", "p7"], not_deleted=True)
 
     async def test_planning_assignment_deletion(self):
         async with self.app.app_context():
@@ -308,7 +308,7 @@ class DeleteSpikedItemsTest(TestCase):
                 not_deleted=True,
             )
 
-            await self.assertDeleteOperation("planning", ["p4"])
-            await self.assertAssignmentDeleted([assignments["p4"]])
+            await self.assertDeleteOperation("planning", ["p4"], not_deleted=True)
+            await self.assertAssignmentDeleted([assignments["p4"]], not_deleted=True)
 
             self.assertEqual(await self.get_assignments_count(), 3)
