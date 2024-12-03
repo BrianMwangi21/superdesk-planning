@@ -103,7 +103,7 @@ class DeleteSpikedItemsTest(TestCase):
         await service.create(items)
 
     async def get_assignments_count(self):
-        results = await self.assignment_service.find({"_id": {"$exists": 1}})
+        results = await self.assignment_service.find({"_id": {"$exists": 1}}, use_mongo=True)
         return await results.count()
 
     async def test_delete_spike_disabled(self):
@@ -295,7 +295,7 @@ class DeleteSpikedItemsTest(TestCase):
             # Map plannings to assignments
             assignments = {}
             for plan_id in ["p1", "p2", "p3", "p4"]:
-                planning = await self.planning_service.find_one(guid=plan_id, req=None)
+                planning = await self.planning_service.find_one_raw(guid=plan_id, req=None)
                 if planning:
                     assignments[plan_id] = planning["coverages"][0]["assigned_to"]["assignment_id"]
 
