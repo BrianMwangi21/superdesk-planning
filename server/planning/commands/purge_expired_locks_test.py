@@ -87,35 +87,35 @@ class PurgeExpiredLocksTest(TestCase):
                     },
                 ],
             )
-            # await self.insert(
-            #     "assignments",
-            #     [
-            #         {
-            #             "_id": assignment_1_id,
-            #             "guid": assignment_1_id,
-            #             "lock_user": ObjectId(),
-            #             "lock_session": ObjectId(),
-            #             "lock_time": now - timedelta(hours=23),
-            #             "lock_action": "edit",
-            #         },
-            #         {
-            #             "_id": assignment_2_id,
-            #             "guid": assignment_2_id,
-            #             "lock_user": ObjectId(),
-            #             "lock_session": ObjectId(),
-            #             "lock_time": now - timedelta(hours=25),
-            #             "lock_action": "edit",
-            #         },
-            #     ],
-            # )
+            await self.insert(
+                "assignments",
+                [
+                    {
+                        "_id": assignment_1_id,
+                        "guid": assignment_1_id,
+                        "lock_user": ObjectId(),
+                        "lock_session": ObjectId(),
+                        "lock_time": now - timedelta(hours=23),
+                        "lock_action": "edit",
+                    },
+                    {
+                        "_id": assignment_2_id,
+                        "guid": assignment_2_id,
+                        "lock_user": ObjectId(),
+                        "lock_session": ObjectId(),
+                        "lock_time": now - timedelta(hours=25),
+                        "lock_action": "edit",
+                    },
+                ],
+            )
             await self.assertLockState(
                 [
                     ("events", "active_event_1", True),
                     ("events", "expired_event_1", True),
                     ("planning", "active_plan_1", True),
                     ("planning", "expired_plan_1", True),
-                    # ("assignments", assignment_1_id, True),
-                    # ("assignments", assignment_2_id, True),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, True),
                 ]
             )
 
@@ -161,8 +161,8 @@ class PurgeExpiredLocksTest(TestCase):
                     ("events", "expired_event_1", False),
                     ("planning", "active_plan_1", True),
                     ("planning", "expired_plan_1", True),
-                    # ("assignments", assignment_1_id, True),
-                    # ("assignments", assignment_2_id, True),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, True),
                 ]
             )
 
@@ -175,8 +175,8 @@ class PurgeExpiredLocksTest(TestCase):
                     ("events", "expired_event_1", True),
                     ("planning", "active_plan_1", True),
                     ("planning", "expired_plan_1", False),
-                    # ("assignments", assignment_1_id, True),
-                    # ("assignments", assignment_2_id, True),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, True),
                 ]
             )
 
@@ -189,8 +189,8 @@ class PurgeExpiredLocksTest(TestCase):
                     ("events", "expired_event_1", True),
                     ("planning", "active_plan_1", True),
                     ("planning", "expired_plan_1", True),
-                    # ("assignments", assignment_1_id, True),
-                    # ("assignments", assignment_2_id, False),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, False),
                 ]
             )
 
@@ -203,8 +203,8 @@ class PurgeExpiredLocksTest(TestCase):
                     ("events", "expired_event_1", False),
                     ("planning", "active_plan_1", True),
                     ("planning", "expired_plan_1", False),
-                    # ("assignments", assignment_1_id, True),
-                    # ("assignments", assignment_2_id, False),
+                    ("assignments", assignment_1_id, True),
+                    ("assignments", assignment_2_id, False),
                 ]
             )
 
@@ -217,7 +217,7 @@ class PurgeExpiredLocksTest(TestCase):
                     ("events", "expired_event_1", False),
                     ("planning", "active_plan_1", False),
                     ("planning", "expired_plan_1", False),
-                    # ("assignments", assignment_1_id, False),
-                    # ("assignments", assignment_2_id, False),
+                    ("assignments", assignment_1_id, False),
+                    ("assignments", assignment_2_id, False),
                 ]
             )
