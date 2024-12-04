@@ -80,13 +80,13 @@ async def get_recurring_timeline(
     future = []
 
     async for event in get_series(query, sort, max_results):
-        end = event.dates.end
-        start = event.dates.start
-        if end < utcnow():
+        end = event.dates.end if event.dates else None
+        start = event.dates.start if event.dates else None
+        if end and end < utcnow():
             historic.append(event.to_dict())
-        elif start < selected_start:
+        elif start and start < selected_start:
             past.append(event.to_dict())
-        elif start > selected_start:
+        elif start and start > selected_start:
             future.append(event.to_dict())
 
     return historic, past, future

@@ -155,9 +155,7 @@ class DeleteSpikedItemsTest(TestCase):
         )
         await delete_spiked_items_handler()
         await self.assertDeleteOperation("events", ["e1", "e2", "e3"], not_deleted=True)
-        await self.assertDeleteOperation(
-            "planning", ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], not_deleted=True
-        )
+        await self.assertDeleteOperation("planning", ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"], not_deleted=True)
 
     async def test_event(self):
         await self.insert(
