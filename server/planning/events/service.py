@@ -18,14 +18,19 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
         Where end date is in the past
         """
         query: dict[str, Any] = {
-            "query": {"bool": {"must_not": [{"term": {"expired": True}}]}},
-            "filter": {"range": {"dates.end": {"lte": date_to_str(expiry_datetime)}}},
+            "query": {
+                "bool": {
+                    "must_not": [{"term": {"expired": True}}],
+                    "filter": {"range": {"dates.end": {"lte": date_to_str(expiry_datetime)}}},
+                },
+            },
             "sort": [{"dates.start": "asc"}],
             "size": get_max_recurrent_events(),
         }
 
         if spiked_events_only:
-            query["query"] = {"bool": {"must": [{"term": {"state": WORKFLOW_STATE.SPIKED}}]}}
+            del query["query"]["bool"]["must_not"]
+            query["query"]["bool"]["must"] = [{"term": {"state": WORKFLOW_STATE.SPIKED}}]
 
         total_received = 0
         total_events = -1
@@ -34,7 +39,8 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
             query["from"] = total_received
 
             results = await self.search(query)
-            results_count = await results.count()
+            items = await results.to_list_raw()
+            results_count = len(items)
 
             # If the total_events has not been set, then this is the first query
             # In which case we need to store the total hits from the search
@@ -52,4 +58,4 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
             total_received += results_count
 
             # Yield the results for iteration by the callee
-            yield await results.to_list_raw()
+            yield items

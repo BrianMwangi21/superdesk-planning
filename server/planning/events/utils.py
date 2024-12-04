@@ -13,7 +13,7 @@ from superdesk.utc import utcnow
 
 async def get_series(
     query: dict, sort: SortParam | None = None, max_results: int = 25
-) -> AsyncGenerator[dict[str, Any], None]:
+) -> AsyncGenerator[EventResourceModel, None]:
     events_service = EventResourceModel.get_service()
     page = 1
 
@@ -21,7 +21,7 @@ async def get_series(
         # Get the results from mongo
         results = await events_service.find(req=query, page=page, max_results=max_results, sort=sort, use_mongo=True)
 
-        docs = await results.to_list_raw()
+        docs = await results.to_list()
         if not docs:
             break
 
@@ -80,17 +80,13 @@ async def get_recurring_timeline(
     future = []
 
     async for event in get_series(query, sort, max_results):
-        event["dates"]["end"] = event["dates"]["end"]
-        event["dates"]["start"] = event["dates"]["start"]
-        for sched in event.get("_planning_schedule", []):
-            sched["scheduled"] = sched["scheduled"]
-        end = event["dates"]["end"]
-        start = event["dates"]["start"]
-        if end < utcnow():
-            historic.append(event)
-        elif start < selected_start:
-            past.append(event)
-        elif start > selected_start:
-            future.append(event)
+        end = event.dates.end if event.dates else None
+        start = event.dates.start if event.dates else None
+        if end and end < utcnow():
+            historic.append(event.to_dict())
+        elif start and start < selected_start:
+            past.append(event.to_dict())
+        elif start and start > selected_start:
+            future.append(event.to_dict())
 
     return historic, past, future
