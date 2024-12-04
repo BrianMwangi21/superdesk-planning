@@ -166,58 +166,58 @@ class PurgeExpiredLocksTest(TestCase):
                 ]
             )
 
-    # async def test_purge_planning_locks(self):
-    #     async with self.app.app_context():
-    #         await purge_expired_locks_handler("planning")
-    #         await self.assertLockState(
-    #             [
-    #                 ("events", "active_event_1", True),
-    #                 ("events", "expired_event_1", True),
-    #                 ("planning", "active_plan_1", True),
-    #                 ("planning", "expired_plan_1", False),
-    #                 # ("assignments", assignment_1_id, True),
-    #                 # ("assignments", assignment_2_id, True),
-    #             ]
-    #         )
-    #
-    # async def test_purge_assignment_locks(self):
-    #     async with self.app.app_context():
-    #         await purge_expired_locks_handler("assignments")
-    #         await self.assertLockState(
-    #             [
-    #                 ("events", "active_event_1", True),
-    #                 ("events", "expired_event_1", True),
-    #                 ("planning", "active_plan_1", True),
-    #                 ("planning", "expired_plan_1", True),
-    #                 # ("assignments", assignment_1_id, True),
-    #                 # ("assignments", assignment_2_id, False),
-    #             ]
-    #         )
-    #
-    # async def test_purge_all_locks(self):
-    #     async with self.app.app_context():
-    #         await purge_expired_locks_handler("all")
-    #         await self.assertLockState(
-    #             [
-    #                 ("events", "active_event_1", True),
-    #                 ("events", "expired_event_1", False),
-    #                 ("planning", "active_plan_1", True),
-    #                 ("planning", "expired_plan_1", False),
-    #                 # ("assignments", assignment_1_id, True),
-    #                 # ("assignments", assignment_2_id, False),
-    #             ]
-    #         )
-    #
-    # async def test_purge_all_locks_with_custom_expiry(self):
-    #     async with self.app.app_context():
-    #         await purge_expired_locks_handler("all", 2)
-    #         await self.assertLockState(
-    #             [
-    #                 ("events", "active_event_1", False),
-    #                 ("events", "expired_event_1", False),
-    #                 ("planning", "active_plan_1", False),
-    #                 ("planning", "expired_plan_1", False),
-    #                 # ("assignments", assignment_1_id, False),
-    #                 # ("assignments", assignment_2_id, False),
-    #             ]
-    #         )
+    async def test_purge_planning_locks(self):
+        async with self.app.app_context():
+            await purge_expired_locks_handler("planning")
+            await self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", True),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", False),
+                    # ("assignments", assignment_1_id, True),
+                    # ("assignments", assignment_2_id, True),
+                ]
+            )
+
+    async def test_purge_assignment_locks(self):
+        async with self.app.app_context():
+            await purge_expired_locks_handler("assignments")
+            await self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", True),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", True),
+                    # ("assignments", assignment_1_id, True),
+                    # ("assignments", assignment_2_id, False),
+                ]
+            )
+
+    async def test_purge_all_locks(self):
+        async with self.app.app_context():
+            await purge_expired_locks_handler("all")
+            await self.assertLockState(
+                [
+                    ("events", "active_event_1", True),
+                    ("events", "expired_event_1", False),
+                    ("planning", "active_plan_1", True),
+                    ("planning", "expired_plan_1", False),
+                    # ("assignments", assignment_1_id, True),
+                    # ("assignments", assignment_2_id, False),
+                ]
+            )
+
+    async def test_purge_all_locks_with_custom_expiry(self):
+        async with self.app.app_context():
+            await purge_expired_locks_handler("all", 2)
+            await self.assertLockState(
+                [
+                    ("events", "active_event_1", False),
+                    ("events", "expired_event_1", False),
+                    ("planning", "active_plan_1", False),
+                    ("planning", "expired_plan_1", False),
+                    # ("assignments", assignment_1_id, False),
+                    # ("assignments", assignment_2_id, False),
+                ]
+            )
