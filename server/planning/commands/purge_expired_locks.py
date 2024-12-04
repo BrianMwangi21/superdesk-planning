@@ -121,7 +121,6 @@ async def purge_item_locks(resource: str, expiry_datetime: datetime):
                         LOCK_SESSION: None,
                         LOCK_TIME: None,
                     },
-                    item,
                 )
             except Exception as err:
                 logger.exception(f"Failed to purge item lock ({err})")
@@ -162,6 +161,7 @@ async def get_locked_items(resource: str, expiry_datetime: datetime) -> AsyncGen
         query["from"] = total_received
         results = await resource_service.search(query)
         items = await results.to_list_raw()
+        print("Items from query:", items)
 
         num_results = len(items)
 
