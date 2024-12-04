@@ -10,7 +10,7 @@
 
 import click
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 from eve.utils import date_to_str
 from typing import AsyncGenerator, Any
 
@@ -83,7 +83,7 @@ async def purge_expired_locks_handler(resource: str, expire_hours: int = 24):
         logger.info("purge expired locks task is already running")
         return
 
-    expiry_datetime = date_to_str(utcnow() - timedelta(hours=expire_hours))
+    expiry_datetime = utcnow() - timedelta(hours=expire_hours)
     for resource_name in resources:
         try:
             await purge_item_locks(resource_name, expiry_datetime)
@@ -94,7 +94,7 @@ async def purge_expired_locks_handler(resource: str, expire_hours: int = 24):
     logger.info("Completed purging expired item locks")
 
 
-async def purge_item_locks(resource: str, expiry_datetime: str):
+async def purge_item_locks(resource: str, expiry_datetime: datetime):
     logger.info(f"Purging expired locks for {resource}")
     resource_service = SERVICE_MAPPING[resource]()
     try:
@@ -145,11 +145,15 @@ async def purge_item_locks(resource: str, expiry_datetime: str):
             logger.info(f"{num_items} {resource} locks purged")
 
 
-async def get_locked_items(resource: str, expiry_datetime: str) -> AsyncGenerator[list[dict[str, Any]], None]:
+async def get_locked_items(resource: str, expiry_datetime: datetime) -> AsyncGenerator[list[dict[str, Any]], None]:
     resource_service = SERVICE_MAPPING[resource]()
     total_received = 0
     query: dict[str, Any] = {
-        "query": {"bool": {"filter": [{"range": {LOCK_TIME: {"lt": expiry_datetime}}}]}},
+        "query": {
+            "bool": {
+                "filter": {"range": {LOCK_TIME: {"lt": date_to_str(expiry_datetime)}}},
+            },
+        },
         "size": get_app_config("MAX_EXPIRY_QUERY_LIMIT"),
         "sort": [{LOCK_TIME: "asc"}],
     }
@@ -158,6 +162,7 @@ async def get_locked_items(resource: str, expiry_datetime: str) -> AsyncGenerato
         query["from"] = total_received
         results = await resource_service.search(query)
         items = await results.to_list_raw()
+
         num_results = len(items)
 
         if not num_results:
