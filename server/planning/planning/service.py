@@ -20,7 +20,7 @@ class PlanningAsyncService(BasePlanningAsyncService[PlanningResourceModel]):
         nested_filter = {
             "nested": {
                 "path": "_planning_schedule",
-                "filter": {"range": {"_planning_schedule.scheduled": {"gt": date_to_str(expiry_datetime)}}},
+                "query": {"range": {"_planning_schedule.scheduled": {"gt": date_to_str(expiry_datetime)}}},
             }
         }
         range_filter = {"range": {"planning_date": {"gt": date_to_str(expiry_datetime)}}}
@@ -62,7 +62,8 @@ class PlanningAsyncService(BasePlanningAsyncService[PlanningResourceModel]):
             query["from"] = total_received
 
             results = await self.search(query)
-            results_count = await results.count()
+            items = await results.to_list_raw()
+            results_count = len(items)
 
             # If the total_items has not been set, then this is the first query
             # In which case we need to store the total hits from the search
@@ -80,4 +81,4 @@ class PlanningAsyncService(BasePlanningAsyncService[PlanningResourceModel]):
             total_received += results_count
 
             # Yield the results for iteration by the callee
-            yield await results.to_list_raw()
+            yield items
