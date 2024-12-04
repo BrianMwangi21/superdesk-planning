@@ -40,7 +40,7 @@ class AssignmentResourceModel(BasePlanningModel, LockFieldsMixin):
 
     priority: int | None = None
     coverage_item: fields.Keyword | None = None
-    planning_item: Annotated[fields.Keyword, validate_data_relation_async("planning")] | None = None
+    planning_item: Annotated[fields.Keyword, validate_data_relation_async("planning")]
     scheduled_update_id: fields.Keyword | None = None
 
     assigned_to: AssignedTo | None = None

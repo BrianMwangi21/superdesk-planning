@@ -97,6 +97,7 @@ class PurgeExpiredLocksTest(TestCase):
                         "lock_session": ObjectId(),
                         "lock_time": now - timedelta(hours=23),
                         "lock_action": "edit",
+                        "planning_item": "active_plan_1",
                     },
                     {
                         "_id": assignment_2_id,
@@ -105,6 +106,7 @@ class PurgeExpiredLocksTest(TestCase):
                         "lock_session": ObjectId(),
                         "lock_time": now - timedelta(hours=25),
                         "lock_action": "edit",
+                        "planning_item": "expired_plan_1",
                     },
                 ],
             )
