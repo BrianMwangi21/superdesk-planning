@@ -24,13 +24,13 @@ from planning.utils import try_cast_object_id
 from .async_cli import planning_cli
 from planning.events import EventsAsyncService
 from planning.planning import PlanningAsyncService
-from planning.assignments import AssingmentsAsyncService
+from planning.assignments import AssignmentsAsyncService
 
 logger = logging.getLogger(__name__)
 SERVICE_MAPPING = {
     "events": EventsAsyncService,
     "planning": PlanningAsyncService,
-    "assignments": AssingmentsAsyncService,
+    "assignments": AssignmentsAsyncService,
 }
 
 
@@ -149,7 +149,7 @@ async def purge_item_locks(resource: str, expiry_datetime: str):
 async def get_locked_items(resource: str, expiry_datetime: str) -> AsyncGenerator[list[dict[str, Any]], None]:
     resource_service = SERVICE_MAPPING[resource]()
     total_received = 0
-    query = {
+    query: dict[str, Any] = {
         "query": {"bool": {"filter": [{"range": {LOCK_TIME: {"lt": expiry_datetime}}}]}},
         "size": get_app_config("MAX_EXPIRY_QUERY_LIMIT"),
         "sort": [{LOCK_TIME: "asc"}],
@@ -158,10 +158,12 @@ async def get_locked_items(resource: str, expiry_datetime: str) -> AsyncGenerato
     for i in range(get_app_config("MAX_EXPIRY_LOOPS")):
         query["from"] = total_received
         results = await resource_service.search(query)
-        num_results = await results.count()
+        items = await results.to_list_raw()
+        num_results = len(items)
 
         if not num_results:
             break
 
         total_received += num_results
-        yield await results.to_list_raw()
+
+        yield items
