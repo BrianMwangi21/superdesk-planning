@@ -103,13 +103,13 @@ async def delete_spiked_events(expiry_datetime):
     # Delete recurring series
     for recurrence_id, events in series_to_delete.items():
         await events_service.delete_many(lookup={"recurrence_id": recurrence_id})
-        events_deleted.add(events)
+        events_deleted.add([event["_id"] for event in events])
 
     logger.info(f"{log_msg} {len(events_deleted)} Events deleted: {list(events_deleted)}")
 
 
 async def is_series_expired_and_spiked(event, expiry_datetime):
-    historic, past, future = await get_recurring_timeline(event, spiked=True)
+    historic, past, future = await get_recurring_timeline(event, spiked=True, postponed=True)
 
     # There are future events, so the entire series is not expired.
     if len(future) > 0:
@@ -118,9 +118,9 @@ async def is_series_expired_and_spiked(event, expiry_datetime):
     def check_series_expired_and_spiked(series):
         for event in series:
             if event.get("state") != WORKFLOW_STATE.SPIKED or event["dates"]["end"] > expiry_datetime:
-                return False, []
+                return False
 
-        return True, []
+        return True
 
     if check_series_expired_and_spiked(historic) and check_series_expired_and_spiked(past):
         return True, [historic + past]
