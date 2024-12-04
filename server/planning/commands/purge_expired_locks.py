@@ -122,7 +122,6 @@ async def purge_item_locks(resource: str, expiry_datetime: str):
                         LOCK_TIME: None,
                     },
                     item,
-                    push_notification=False,
                 )
             except Exception as err:
                 logger.exception(f"Failed to purge item lock ({err})")
