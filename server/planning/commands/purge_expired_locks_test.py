@@ -12,11 +12,9 @@ from typing import List, Tuple, Union
 from datetime import timedelta
 from bson import ObjectId
 
+from planning.utils import get_service
 from superdesk.utc import utcnow
 from planning.tests import TestCase
-from planning.events import EventsAsyncService
-from planning.planning import PlanningAsyncService
-from planning.assignments import AssignmentsAsyncService
 from .purge_expired_locks import purge_expired_locks_handler
 
 now = utcnow()
@@ -26,19 +24,8 @@ assignment_2_id = ObjectId()
 
 # TODO: Add Assignments
 class PurgeExpiredLocksTest(TestCase):
-    app_config = {
-        **TestCase.app_config.copy(),
-    }
-
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        self.app_config.update({"MODULES": ["planning.module"]})
-
-        self.service_mapping = {
-            "events": EventsAsyncService,
-            "planning": PlanningAsyncService,
-            "assignments": AssignmentsAsyncService,
-        }
 
         async with self.app.app_context():
             await self.insert(
@@ -122,19 +109,11 @@ class PurgeExpiredLocksTest(TestCase):
             )
 
     async def insert(self, item_type, items):
-        try:
-            service = self.service_mapping[item_type]()
-        except KeyError:
-            raise ValueError(f"Invalid item_type: {item_type}")
-        await service.create(items)
+        await get_service(item_type).create(items)
 
     async def assertLockState(self, item_tests: List[Tuple[str, Union[str, ObjectId], bool]]):
         for resource, item_id, is_locked in item_tests:
-            try:
-                service = self.service_mapping[resource]()
-            except KeyError:
-                raise ValueError(f"Invalid resource: {resource}")
-
+            service = get_service(resource)
             item = await service.find_by_id_raw(item_id)
             if not item:
                 raise AssertionError(f"{resource} item with ID {item_id} not found")

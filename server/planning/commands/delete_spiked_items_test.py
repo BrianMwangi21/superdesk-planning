@@ -78,7 +78,6 @@ class DeleteSpikedItemsTest(TestCase):
 
     async def asyncSetUp(self):
         await super().asyncSetUp()
-        self.app_config.update({"MODULES": ["planning.module"]})
 
         self.event_service = EventsAsyncService()
         self.planning_service = PlanningAsyncService()
