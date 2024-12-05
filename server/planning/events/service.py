@@ -1,6 +1,6 @@
 from typing import AsyncGenerator, Any
 from datetime import datetime
-from eve.utils import date_to_str
+from superdesk.core.utils import date_to_str
 
 from planning.types import EventResourceModel
 from planning.common import get_max_recurrent_events, WORKFLOW_STATE
