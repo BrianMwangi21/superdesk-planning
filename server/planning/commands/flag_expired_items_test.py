@@ -12,12 +12,14 @@ from datetime import timedelta
 
 from bson.objectid import ObjectId
 
+from planning.events.service import EventsAsyncService
+from planning.planning.service import PlanningAsyncService
 from superdesk import get_resource_service
 from superdesk.utc import utcnow
 
 from planning.tests import TestCase
 from planning.types import PlanningRelatedEventLink
-from .flag_expired_items import FlagExpiredItems
+from .flag_expired_items import flag_expired_items_handler
 
 now = utcnow()
 yesterday = now - timedelta(hours=48)
@@ -37,32 +39,36 @@ expired = {
 
 
 class FlagExpiredItemsTest(TestCase):
+    app_config = {
+        **TestCase.app_config.copy(),
+        # Expire items that are scheduled more than 24 hours from now
+        "PLANNING_EXPIRY_MINUTES": 1440,
+    }
+
     async def asyncSetUp(self):
         await super().asyncSetUp()
 
-        # Expire items that are scheduled more than 24 hours from now
-        self.app.config.update({"PLANNING_EXPIRY_MINUTES": 1440})
+        self.event_service = EventsAsyncService()
+        self.planning_service = PlanningAsyncService()
 
-        self.event_service = get_resource_service("events")
-        self.planning_service = get_resource_service("planning")
-
-    def assertExpired(self, item_type, results):
+    async def assertExpired(self, item_type, results):
         service = self.event_service if item_type == "events" else self.planning_service
 
         for item_id, result in results.items():
-            item = service.find_one(_id=item_id, req=None)
-            self.assertIsNotNone(item)
-            self.assertEqual(item.get("expired", False), result)
+            item = await service.find_one_raw(guid=item_id, req=None)
+            if item:
+                self.assertIsNotNone(item)
+                self.assertEqual(item.get("expired", False), result)
 
-    def insert(self, item_type, items):
+    async def insert(self, item_type, items):
         service = self.event_service if item_type == "events" else self.planning_service
-        service.post(items)
+        await service.create(items)
 
     async def test_expire_disabled(self):
         self.app.config.update({"PLANNING_EXPIRY_MINUTES": 0})
 
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "events",
                 [
                     {"guid": "e1", **active["event"]},
@@ -70,7 +76,7 @@ class FlagExpiredItemsTest(TestCase):
                     {"guid": "e3", **expired["event"]},
                 ],
             )
-            self.insert(
+            await self.insert(
                 "planning",
                 [
                     {"guid": "p1", **active["plan"], "coverages": []},
@@ -103,11 +109,9 @@ class FlagExpiredItemsTest(TestCase):
                     },
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired("events", {"e1": False, "e2": False, "e3": False})
-
-            self.assertExpired(
+            await flag_expired_items_handler()
+            await self.assertExpired("events", {"e1": False, "e2": False, "e3": False})
+            await self.assertExpired(
                 "planning",
                 {
                     "p1": False,
@@ -123,7 +127,7 @@ class FlagExpiredItemsTest(TestCase):
 
     async def test_event(self):
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "events",
                 [
                     {"guid": "e1", **active["event"]},
@@ -131,13 +135,12 @@ class FlagExpiredItemsTest(TestCase):
                     {"guid": "e3", **expired["event"]},
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired("events", {"e1": False, "e2": False, "e3": True})
+            await flag_expired_items_handler()
+            await self.assertExpired("events", {"e1": False, "e2": False, "e3": True})
 
     async def test_planning(self):
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "planning",
                 [
                     {"guid": "p1", **active["plan"], "coverages": []},
@@ -170,9 +173,8 @@ class FlagExpiredItemsTest(TestCase):
                     },
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired(
+            await flag_expired_items_handler()
+            await self.assertExpired(
                 "planning",
                 {
                     "p1": False,
@@ -188,7 +190,7 @@ class FlagExpiredItemsTest(TestCase):
 
     async def test_event_with_single_planning_no_coverages(self):
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "events",
                 [
                     {"guid": "e1", **active["event"]},
@@ -197,8 +199,7 @@ class FlagExpiredItemsTest(TestCase):
                     {"guid": "e4", **expired["event"]},
                 ],
             )
-
-            self.insert(
+            await self.insert(
                 "planning",
                 [
                     {
@@ -223,15 +224,13 @@ class FlagExpiredItemsTest(TestCase):
                     },
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired("events", {"e1": False, "e2": False, "e3": False, "e4": True})
-
-            self.assertExpired("planning", {"p1": False, "p2": False, "p3": False, "p4": True})
+            await flag_expired_items_handler()
+            await self.assertExpired("events", {"e1": False, "e2": False, "e3": False, "e4": True})
+            await self.assertExpired("planning", {"p1": False, "p2": False, "p3": False, "p4": True})
 
     async def test_event_with_single_planning_single_coverage(self):
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "events",
                 [
                     {"guid": "e1", **active["event"]},
@@ -244,8 +243,7 @@ class FlagExpiredItemsTest(TestCase):
                     {"guid": "e8", **expired["event"]},
                 ],
             )
-
-            self.insert(
+            await self.insert(
                 "planning",
                 [
                     {
@@ -298,9 +296,8 @@ class FlagExpiredItemsTest(TestCase):
                     },
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired(
+            await flag_expired_items_handler()
+            await self.assertExpired(
                 "events",
                 {
                     "e1": False,
@@ -313,8 +310,7 @@ class FlagExpiredItemsTest(TestCase):
                     "e8": True,
                 },
             )
-
-            self.assertExpired(
+            await self.assertExpired(
                 "planning",
                 {
                     "p1": False,
@@ -330,7 +326,7 @@ class FlagExpiredItemsTest(TestCase):
 
     async def test_event_with_single_planning_multiple_coverages(self):
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "events",
                 [
                     {"guid": "e01", **active["event"]},
@@ -349,8 +345,7 @@ class FlagExpiredItemsTest(TestCase):
                     {"guid": "e14", **expired["event"]},
                 ],
             )
-
-            self.insert(
+            await self.insert(
                 "planning",
                 [
                     {
@@ -439,9 +434,8 @@ class FlagExpiredItemsTest(TestCase):
                     },
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired(
+            await flag_expired_items_handler()
+            await self.assertExpired(
                 "events",
                 {
                     "e01": False,
@@ -460,8 +454,7 @@ class FlagExpiredItemsTest(TestCase):
                     "e14": True,
                 },
             )
-
-            self.assertExpired(
+            await self.assertExpired(
                 "planning",
                 {
                     "p01": False,
@@ -483,7 +476,7 @@ class FlagExpiredItemsTest(TestCase):
 
     async def test_event_with_multiple_planning(self):
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "events",
                 [
                     {"guid": "e1", **active["event"]},
@@ -496,8 +489,7 @@ class FlagExpiredItemsTest(TestCase):
                     {"guid": "e8", **expired["event"]},
                 ],
             )
-
-            self.insert(
+            await self.insert(
                 "planning",
                 [
                     {
@@ -598,9 +590,8 @@ class FlagExpiredItemsTest(TestCase):
                     },
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired(
+            await flag_expired_items_handler()
+            await self.assertExpired(
                 "events",
                 {
                     "e1": False,
@@ -613,8 +604,7 @@ class FlagExpiredItemsTest(TestCase):
                     "e8": True,
                 },
             )
-
-            self.assertExpired(
+            await self.assertExpired(
                 "planning",
                 {
                     "p01": False,
@@ -638,7 +628,7 @@ class FlagExpiredItemsTest(TestCase):
 
     async def test_bad_event_schedule(self):
         async with self.app.app_context():
-            self.insert(
+            await self.insert(
                 "events",
                 [
                     {
@@ -648,9 +638,8 @@ class FlagExpiredItemsTest(TestCase):
                     }
                 ],
             )
-            FlagExpiredItems().run()
-
-            self.assertExpired(
+            await flag_expired_items_handler()
+            await self.assertExpired(
                 "events",
                 {
                     "e1": True,
@@ -680,6 +669,6 @@ class FlagExpiredItemsTest(TestCase):
                     },
                 ],
             )
-            FlagExpiredItems().run()
+            await flag_expired_items_handler()
             version_entries = get_resource_service("published_planning").get(req=None, lookup={})
             self.assertEqual(1, version_entries.count())
