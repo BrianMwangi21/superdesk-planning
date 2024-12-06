@@ -96,7 +96,7 @@ async def flag_expired_events(expiry_datetime: datetime):
     # Obtain the full list of Events that we're to process first
     # As subsequent queries will change the list of returned items
     events = dict()
-    async for items in events_service.get_expired_items(expiry_datetime, spiked_events_only=True):
+    async for items in events_service.get_expired_items(expiry_datetime):
         events.update({item[ID_FIELD]: item for item in items})
 
     set_event_plans(events)
