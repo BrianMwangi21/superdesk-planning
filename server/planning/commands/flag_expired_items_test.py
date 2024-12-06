@@ -56,15 +56,13 @@ class FlagExpiredItemsTest(TestCase):
 
         for item_id, result in results.items():
             item = await service.find_one_raw(guid=item_id, req=None)
-            print("item found using guid:", item, "\n")
             if item:
                 self.assertIsNotNone(item)
                 self.assertEqual(item.get("expired", False), result)
 
     async def insert(self, item_type, items):
         service = self.event_service if item_type == "events" else self.planning_service
-        res = await service.create(items)
-        print("res:", res, "\n")
+        await service.create(items)
 
     async def test_expire_disabled(self):
         self.app.config.update({"PLANNING_EXPIRY_MINUTES": 0})
