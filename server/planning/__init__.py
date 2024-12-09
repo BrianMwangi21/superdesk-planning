@@ -325,17 +325,13 @@ def init_scheduled_exports_task(app):
 
 
 @celery.task(soft_time_limit=600)
-def flag_expired():
-    import asyncio
-
-    asyncio.run(flag_expired_items_handler())
+async def flag_expired():
+    await flag_expired_items_handler()
 
 
 @celery.task(soft_time_limit=600)
-def delete_spiked():
-    import asyncio
-
-    asyncio.run(delete_spiked_items_handler())
+async def delete_spiked():
+    await delete_spiked_items_handler()
 
 
 @celery.task(soft_time_limit=600)
