@@ -22,19 +22,19 @@ from planning.types import PlanningRelatedEventLink
 from .flag_expired_items import flag_expired_items_handler
 
 now = utcnow()
-yesterday = now - timedelta(hours=48)
+two_days_ago = now - timedelta(hours=48)
 
 active = {
     "event": {"dates": {"start": now - timedelta(hours=1), "end": now}},
-    "overnightEvent": {"dates": {"start": yesterday, "end": now}},
+    "overnightEvent": {"dates": {"start": two_days_ago, "end": now}},
     "plan": {"planning_date": now},
     "coverage": {"planning": {"scheduled": now}},
 }
 
 expired = {
-    "event": {"dates": {"start": yesterday, "end": yesterday + timedelta(hours=1)}},
-    "plan": {"planning_date": yesterday},
-    "coverage": {"planning": {"scheduled": yesterday}},
+    "event": {"dates": {"start": two_days_ago, "end": two_days_ago + timedelta(hours=1)}},
+    "plan": {"planning_date": two_days_ago},
+    "coverage": {"planning": {"scheduled": two_days_ago}},
 }
 
 
@@ -42,7 +42,7 @@ class FlagExpiredItemsTest(TestCase):
     app_config = {
         **TestCase.app_config.copy(),
         # Expire items that are scheduled more than 24 hours from now
-        "PLANNING_EXPIRY_MINUTES": 1440,
+        "PLANNING_EXPIRY_MINUTES": 24 * 60,
     }
 
     async def asyncSetUp(self):

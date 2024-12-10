@@ -11,6 +11,7 @@
 from datetime import timedelta, datetime
 from bson.objectid import ObjectId
 from contextvars import ContextVar
+from typing import Any
 
 from planning.events import EventsAsyncService
 from planning.planning import PlanningAsyncService
@@ -135,7 +136,7 @@ async def flag_expired_planning(expiry_datetime: datetime):
     planning_service = PlanningAsyncService()
 
     # Obtain the full list of Planning items that we're to process first
-    # As subsequent queries will change the list of returnd items
+    # As subsequent queries will change the list of returned items
     plans = dict()
     async for items in planning_service.get_expired_items(expiry_datetime):
         plans.update({item[ID_FIELD]: item for item in items})
@@ -159,7 +160,7 @@ async def flag_expired_planning(expiry_datetime: datetime):
     logger.info(f"{log_msg} {len(plans_expired)} Planning items expired: {list(plans_expired)}")
 
 
-def set_event_plans(events):
+def set_event_plans(events: dict[str, dict[str, Any]]) -> None:
     for plan in get_related_planning_for_events(list(events.keys()), "primary"):
         for related_event_id in get_related_event_ids_for_planning(plan, "primary"):
             event = events[related_event_id]
@@ -168,7 +169,7 @@ def set_event_plans(events):
             event["_plans"].append(plan)
 
 
-def get_event_schedule(event):
+def get_event_schedule(event: dict[str, Any]) -> datetime:
     latest_scheduled = datetime.strptime(event["dates"]["end"], "%Y-%m-%dT%H:%M:%S%z")
     for plan in event.get("_plans", []):
         # First check the Planning item's planning date
