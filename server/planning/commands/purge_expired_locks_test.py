@@ -28,6 +28,8 @@ class PurgeExpiredLocksTest(TestCase):
         await super().asyncSetUp()
 
         async with self.app.app_context():
+            self.setup_test_user()
+
             await self.insert(
                 "events",
                 [
