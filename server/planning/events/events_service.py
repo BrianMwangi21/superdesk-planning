@@ -61,9 +61,18 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
     async def get_expired_items(
         self, expiry_datetime: datetime, spiked_events_only: bool = False
     ) -> AsyncGenerator[list[dict[str, Any]], None]:
-        """Get the expired items
+        """
+        Retrieve "expired" events which are those whose end date is on or before `expiry_datetime` and
+        are not already marked as expired.
 
-        Where end date is in the past
+        By default, items returned are:
+        - Not expired.
+        - Have an end date `<= expiry_datetime`.
+
+        If `spiked_events_only` is True, only spiked events are returned, still filtered by
+        end date `<= expiry_datetime`.
+
+        Results are sorted by start date and fetched in batches.
         """
         query: dict[str, Any] = {
             "query": {
