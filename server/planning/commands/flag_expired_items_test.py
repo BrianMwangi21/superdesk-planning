@@ -182,9 +182,9 @@ class FlagExpiredItemsTest(TestCase):
                     "p3": False,
                     "p4": False,
                     "p5": True,
-                    "p6": False,
+                    "p6": True,
                     "p7": True,
-                    "p8": False,
+                    "p8": True,
                 },
             )
 
@@ -214,19 +214,19 @@ class FlagExpiredItemsTest(TestCase):
                     },
                     {
                         "guid": "p3",
-                        "related_events": [PlanningRelatedEventLink(_id="e3", link_type="primary")],
+                        "related_events": [PlanningRelatedEventLink(_id="e3", link_type="secondary")],
                         **expired["plan"],
                     },
                     {
                         "guid": "p4",
-                        "related_events": [PlanningRelatedEventLink(_id="e4", link_type="primary")],
+                        "related_events": [PlanningRelatedEventLink(_id="e4", link_type="secondary")],
                         **expired["plan"],
                     },
                 ],
             )
             await flag_expired_items_handler()
-            await self.assertExpired("events", {"e1": False, "e2": False, "e3": False, "e4": True})
-            await self.assertExpired("planning", {"p1": False, "p2": False, "p3": False, "p4": True})
+            await self.assertExpired("events", {"e1": False, "e2": True, "e3": False, "e4": True})
+            await self.assertExpired("planning", {"p1": False, "p2": False, "p3": True, "p4": True})
 
     async def test_event_with_single_planning_single_coverage(self):
         async with self.app.app_context():
@@ -290,7 +290,7 @@ class FlagExpiredItemsTest(TestCase):
                     },
                     {
                         "guid": "p8",
-                        "related_events": [PlanningRelatedEventLink(_id="e8", link_type="primary")],
+                        "related_events": [PlanningRelatedEventLink(_id="e8", link_type="secondary")],
                         **expired["plan"],
                         "coverages": [expired["coverage"]],
                     },
@@ -304,9 +304,9 @@ class FlagExpiredItemsTest(TestCase):
                     "e2": False,
                     "e3": False,
                     "e4": False,
-                    "e5": False,
-                    "e6": False,
-                    "e7": False,
+                    "e5": True,
+                    "e6": True,
+                    "e7": True,
                     "e8": True,
                 },
             )
@@ -428,7 +428,7 @@ class FlagExpiredItemsTest(TestCase):
                     },
                     {
                         "guid": "p14",
-                        "related_events": [PlanningRelatedEventLink(_id="e14", link_type="primary")],
+                        "related_events": [PlanningRelatedEventLink(_id="e14", link_type="secondary")],
                         **expired["plan"],
                         "coverages": [expired["coverage"], expired["coverage"]],  # EEE
                     },
@@ -445,12 +445,12 @@ class FlagExpiredItemsTest(TestCase):
                     "e05": False,
                     "e06": False,
                     "e07": False,
-                    "e08": False,
-                    "e09": False,
-                    "e10": False,
-                    "e11": False,
-                    "e12": False,
-                    "e13": False,
+                    "e08": True,
+                    "e09": True,
+                    "e10": True,
+                    "e11": True,
+                    "e12": True,
+                    "e13": True,
                     "e14": True,
                 },
             )
@@ -578,13 +578,13 @@ class FlagExpiredItemsTest(TestCase):
                     },
                     {
                         "guid": "p15",
-                        "related_events": [PlanningRelatedEventLink(_id="e8", link_type="primary")],
+                        "related_events": [PlanningRelatedEventLink(_id="e8", link_type="secondary")],
                         **expired["plan"],
                         "coverages": [expired["coverage"]],
                     },
                     {
                         "guid": "p16",
-                        "related_events": [PlanningRelatedEventLink(_id="e8", link_type="primary")],
+                        "related_events": [PlanningRelatedEventLink(_id="e8", link_type="secondary")],
                         **expired["plan"],
                         "coverages": [expired["coverage"]],
                     },
@@ -598,9 +598,9 @@ class FlagExpiredItemsTest(TestCase):
                     "e2": False,
                     "e3": False,
                     "e4": False,
-                    "e5": False,
-                    "e6": False,
-                    "e7": False,
+                    "e5": True,
+                    "e6": True,
+                    "e7": True,
                     "e8": True,
                 },
             )
