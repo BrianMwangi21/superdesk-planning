@@ -14,10 +14,13 @@ from datetime import datetime
 from .content_profiles import ContentFieldSchema, ContentFieldEditor, ContentProfile  # noqa
 
 from .base import BasePlanningModel
+from .common import PlanningSchedule
 from .event import EventResourceModel
 from .planning import PlanningResourceModel
 from .assignment import AssignmentResourceModel
 from .published import PublishedPlanningModel
+from .enums import PostStates, UpdateMethods, WorkflowState
+
 
 __all__ = [
     "BasePlanningModel",
@@ -25,6 +28,10 @@ __all__ = [
     "PlanningResourceModel",
     "AssignmentResourceModel",
     "PublishedPlanningModel",
+    "PlanningSchedule",
+    "PostStates",
+    "UpdateMethods",
+    "WorkflowState",
 ]
 
 
@@ -55,7 +62,7 @@ class EmbeddedCoverageItem(TypedDict, total=False):
     priority: int
 
 
-class EmbeddedPlanning(TypedDict, total=False):
+class EmbeddedPlanningDict(TypedDict, total=False):
     planning_id: str
     update_method: UPDATE_METHOD
     coverages: Dict[str, EmbeddedCoverageItem]

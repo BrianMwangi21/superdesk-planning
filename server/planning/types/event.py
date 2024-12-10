@@ -5,7 +5,7 @@ from typing import Annotated, Any
 from content_api.items.model import CVItem, Place
 
 from superdesk.utc import utcnow
-from superdesk.core.resources import fields, dataclass
+from superdesk.core.resources import fields, dataclass, Dataclass
 from superdesk.core.resources.validators import validate_data_relation_async
 
 from .base import BasePlanningModel
@@ -101,10 +101,10 @@ class EmbeddedPlanningCoverage:
 
 
 @dataclass
-class EmbeddedPlanning:
+class EmbeddedPlanning(Dataclass):
     planning_id: Annotated[str, validate_data_relation_async("planning")]
     update_method: Annotated[UpdateMethods, fields.keyword_mapping()] | None = None
-    coverages: list[EmbeddedPlanningCoverage] | None = Field(default_factory=list)
+    coverages: list[EmbeddedPlanningCoverage] = Field(default_factory=list)
 
 
 @dataclass
@@ -123,7 +123,7 @@ class RelatedItem:
 
 
 class EventResourceModel(BasePlanningModel, LockFieldsMixin):
-    guid: fields.Keyword
+    guid: fields.Keyword | None = None
     unique_id: int | None = None
     unique_name: fields.Keyword | None = None
     version: int | None = None
@@ -214,7 +214,7 @@ class EventResourceModel(BasePlanningModel, LockFieldsMixin):
     item_type: Annotated[fields.Keyword, Field(alias="type")] = "event"
 
     # Named Calendars
-    calendars: list[KeywordQCodeName] | None = None
+    calendars: list[KeywordQCodeName] = Field(default_factory=list)
 
     # The previous state the item was in before for example being spiked,
     # when un-spiked it will revert to this state

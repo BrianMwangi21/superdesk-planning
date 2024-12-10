@@ -10,14 +10,15 @@
 
 """Superdesk Events"""
 
-from typing import Dict, Any, Optional, List, Tuple
+
+import re
+import pytz
 import logging
 import itertools
+
 from copy import deepcopy
 from datetime import timedelta
-
-import pytz
-import re
+from typing import Dict, Any, Optional, List, Tuple
 from eve.methods.common import resolve_document_etag
 from eve.utils import date_to_str
 from dateutil.rrule import (
@@ -35,9 +36,9 @@ from dateutil.rrule import (
     SU,
 )
 
+import superdesk
 from superdesk.core import get_app_config, get_current_app
 from superdesk.resource_fields import ID_FIELD
-import superdesk
 from superdesk import get_resource_service
 from superdesk.errors import SuperdeskApiError
 from superdesk.metadata.utils import generate_guid
@@ -48,13 +49,8 @@ from superdesk.users.services import current_user_has_privilege
 from apps.auth import get_user, get_user_id
 from apps.archive.common import get_auth, update_dates_for
 
-from planning.types import (
-    Event,
-    EmbeddedPlanning,
-    EmbeddedCoverageItem,
-    PlanningRelatedEventLink,
-    PLANNING_RELATED_EVENT_LINK_TYPE,
-)
+from planning.types import Event, PlanningRelatedEventLink, PLANNING_RELATED_EVENT_LINK_TYPE
+from planning.types.event import EmbeddedPlanning
 from planning.common import (
     UPDATE_SINGLE,
     UPDATE_FUTURE,
@@ -74,7 +70,6 @@ from planning.common import (
     set_ingest_version_datetime,
     is_new_version,
     update_ingest_on_patch,
-    TEMP_ID_PREFIX,
 )
 from planning.utils import (
     get_planning_event_link_method,
@@ -84,6 +79,7 @@ from planning.utils import (
 from .events_base_service import EventsBaseService
 from .events_schema import events_schema
 from .events_sync import sync_event_metadata_with_planning_items
+from .events_utils import get_events_embedded_planning
 
 logger = logging.getLogger(__name__)
 
@@ -97,22 +93,6 @@ organizer_roles = {
     "eorol:travAgent": "Travel agent",
     "eorol:venue": "Venue organiser",
 }
-
-
-def get_events_embedded_planning(event: Event) -> List[EmbeddedPlanning]:
-    def get_coverage_id(coverage: EmbeddedCoverageItem) -> str:
-        if not coverage.get("coverage_id"):
-            coverage["coverage_id"] = TEMP_ID_PREFIX + "-" + generate_guid(type=GUID_NEWSML)
-        return coverage["coverage_id"]
-
-    return [
-        EmbeddedPlanning(
-            planning_id=planning.get("planning_id"),
-            update_method=planning.get("update_method") or "single",
-            coverages={get_coverage_id(coverage): coverage for coverage in planning.get("coverages") or []},
-        )
-        for planning in event.pop("embedded_planning", [])
-    ]
 
 
 def get_subject_str(subject: Dict[str, str]) -> str:
@@ -298,9 +278,9 @@ class EventsService(superdesk.Service):
 
         embedded_planning_lists: List[Tuple[Event, List[EmbeddedPlanning]]] = []
         for event in docs:
-            embedded_planning = get_events_embedded_planning(event)
-            if len(embedded_planning):
-                embedded_planning_lists.append((event, embedded_planning))
+            emb_planning = get_events_embedded_planning(event)
+            if len(emb_planning):
+                embedded_planning_lists.append((event, emb_planning))  # type: ignore
 
         ids = self.backend.create(self.datasource, docs, **kwargs)
 
@@ -877,6 +857,7 @@ class EventsResource(superdesk.Resource):
     merge_nested_documents = True
 
 
+# TODO-ASYNC: moved to `events_utils.py`. Remove when it is no longer referenced
 def generate_recurring_dates(
     start,
     frequency,
@@ -1000,6 +981,7 @@ def generate_recurring_events(event, recurrence_id=None):
         for key in list(new_event.keys()):
             if key.startswith("_") or key.startswith("lock_"):
                 new_event.pop(key)
+
             elif key == "embedded_planning":
                 if not embedded_planning_added:
                     # If this is the first Event in the series, then keep
