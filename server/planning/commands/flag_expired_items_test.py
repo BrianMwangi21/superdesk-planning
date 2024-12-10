@@ -12,8 +12,8 @@ from datetime import timedelta
 
 from bson.objectid import ObjectId
 
-from planning.events.service import EventsAsyncService
-from planning.planning.service import PlanningAsyncService
+from planning.events import EventsAsyncService
+from planning.planning import PlanningAsyncService
 from superdesk import get_resource_service
 from superdesk.utc import utcnow
 
@@ -225,7 +225,7 @@ class FlagExpiredItemsTest(TestCase):
                 ],
             )
             await flag_expired_items_handler()
-            await self.assertExpired("events", {"e1": False, "e2": True, "e3": False, "e4": True})
+            await self.assertExpired("events", {"e1": False, "e2": False, "e3": False, "e4": True})
             await self.assertExpired("planning", {"p1": False, "p2": False, "p3": True, "p4": True})
 
     async def test_event_with_single_planning_single_coverage(self):
@@ -304,9 +304,9 @@ class FlagExpiredItemsTest(TestCase):
                     "e2": False,
                     "e3": False,
                     "e4": False,
-                    "e5": True,
+                    "e5": False,
                     "e6": True,
-                    "e7": True,
+                    "e7": False,
                     "e8": True,
                 },
             )
@@ -318,7 +318,7 @@ class FlagExpiredItemsTest(TestCase):
                     "p3": False,
                     "p4": False,
                     "p5": False,
-                    "p6": False,
+                    "p6": True,
                     "p7": False,
                     "p8": True,
                 },
@@ -445,10 +445,10 @@ class FlagExpiredItemsTest(TestCase):
                     "e05": False,
                     "e06": False,
                     "e07": False,
-                    "e08": True,
+                    "e08": False,
                     "e09": True,
-                    "e10": True,
-                    "e11": True,
+                    "e10": False,
+                    "e11": False,
                     "e12": True,
                     "e13": True,
                     "e14": True,
@@ -465,11 +465,11 @@ class FlagExpiredItemsTest(TestCase):
                     "p06": False,
                     "p07": False,
                     "p08": False,
-                    "p09": False,
+                    "p09": True,
                     "p10": False,
                     "p11": False,
-                    "p12": False,
-                    "p13": False,
+                    "p12": True,
+                    "p13": True,
                     "p14": True,
                 },
             )
@@ -598,9 +598,9 @@ class FlagExpiredItemsTest(TestCase):
                     "e2": False,
                     "e3": False,
                     "e4": False,
-                    "e5": True,
-                    "e6": True,
-                    "e7": True,
+                    "e5": False,
+                    "e6": False,
+                    "e7": False,
                     "e8": True,
                 },
             )
