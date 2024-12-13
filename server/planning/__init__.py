@@ -64,7 +64,12 @@ from datetime import timedelta
 from superdesk import register_jinja_filter
 from .common import get_formatted_address
 
-from .commands import FlagExpiredItems, DeleteMarkedAssignments, ExportScheduledFilters, delete_spiked_items_handler
+from .commands import (
+    flag_expired_items_handler,
+    DeleteMarkedAssignments,
+    ExportScheduledFilters,
+    delete_spiked_items_handler,
+)
 import planning.commands  # noqa
 import planning.feeding_services  # noqa
 import planning.feed_parsers  # noqa
@@ -320,15 +325,13 @@ def init_scheduled_exports_task(app):
 
 
 @celery.task(soft_time_limit=600)
-def flag_expired():
-    FlagExpiredItems().run()
+async def flag_expired():
+    await flag_expired_items_handler()
 
 
 @celery.task(soft_time_limit=600)
-def delete_spiked():
-    import asyncio
-
-    asyncio.run(delete_spiked_items_handler())
+async def delete_spiked():
+    await delete_spiked_items_handler()
 
 
 @celery.task(soft_time_limit=600)

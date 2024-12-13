@@ -17,9 +17,17 @@ class PlanningAsyncService(BasePlanningAsyncService[PlanningResourceModel]):
     async def get_expired_items(
         self, expiry_datetime: datetime, spiked_planning_only: bool = False
     ) -> AsyncGenerator[list[dict[str, Any]], None]:
-        """Get the expired items
+        """
+        Retrieve "expired" items which are those whose planning_date is before `expiry_datetime` and
+        have no future schedules or primary-linked events, and are not already expired.
 
-        Where planning_date is in the past
+        By default, items are filtered to exclude:
+        - Items linked to a primary event or,
+        - Items already expired or,
+        - Items with future scheduling or a planning_date beyond `expiry_datetime`.
+
+        If `spiked_planning_only` is True, only spiked items are returned, still excluding
+        those with future schedules or planning_dates.
         """
         nested_filter = {
             "nested": {
