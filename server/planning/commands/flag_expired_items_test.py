@@ -38,6 +38,7 @@ expired = {
 }
 
 
+# TODO: Revert changes to test cases to previous state once Planning service is fully changed to async including processing coverages and dates
 class FlagExpiredItemsTest(TestCase):
     app_config = {
         **TestCase.app_config.copy(),
