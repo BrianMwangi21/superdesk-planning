@@ -8,27 +8,28 @@
 # AUTHORS and LICENSE files distributed with this source code, or
 # at https://www.sourcefabric.org/superdesk/license
 
-from typing import Type, Union, List, Dict, Any, TypedDict, Optional
+import arrow
+import pytz
 import logging
 from datetime import datetime
 
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
 from quart_babel import lazy_gettext
-from eve.utils import str_to_date, ParsedRequest
-import arrow
-import pytz
+from eve.utils import ParsedRequest
+from werkzeug.exceptions import BadRequest
+from typing import Type, Union, List, Dict, Any, TypedDict, Optional
 
-from superdesk.core import json, get_app_config
-from superdesk.core.resources.service import AsyncResourceService
-from superdesk.resource_fields import ID_FIELD
-from planning import types
 from superdesk import get_resource_service
 from superdesk.json_utils import cast_item
-from planning.types import EventResourceModel, PlanningResourceModel, AssignmentResourceModel, BasePlanningModel
+from superdesk.core.utils import str_to_date
+from superdesk.resource_fields import ID_FIELD
+from superdesk.core import json, get_app_config
+from superdesk.core.resources.service import AsyncResourceService
 
+from planning import types
+from planning.types import EventResourceModel, PlanningResourceModel, AssignmentResourceModel, BasePlanningModel
 from planning.types import Event, Planning, PLANNING_RELATED_EVENT_LINK_TYPE, PlanningRelatedEventLink
-from werkzeug.exceptions import BadRequest
 
 
 logger = logging.getLogger(__name__)
