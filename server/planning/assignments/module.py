@@ -5,8 +5,9 @@ from superdesk.core.resources import (
     ElasticResourceConfig,
 )
 
-from planning.types import AssignmentResourceModel
+from planning.types import AssignmentResourceModel, DeliveryResourceModel
 from .service import AssignmentsAsyncService
+from .delivery_service import DeliveryAsyncService
 
 assignments_resource_config = ResourceConfig(
     name="assignments",
@@ -29,6 +30,37 @@ assignments_resource_config = ResourceConfig(
                 name="published_state_1",
                 keys=[("published_state", 1)],
                 unique=False,
+            ),
+        ],
+    ),
+    elastic=ElasticResourceConfig(),
+)
+
+delivery_resource_config = ResourceConfig(
+    name="delivery",
+    data_class=DeliveryResourceModel,
+    service=DeliveryAsyncService,
+    mongo=MongoResourceConfig(
+        indexes=[
+            MongoIndexOptions(
+                name="planning_id_1",
+                keys=[("planning_id", 1)],
+                background=True,
+            ),
+            MongoIndexOptions(
+                name="assignment_id_1",
+                keys=[("assignment_id", 1)],
+                background=True,
+            ),
+            MongoIndexOptions(
+                name="coverage_id_1",
+                keys=[("coverage_id", 1)],
+                background=True,
+            ),
+            MongoIndexOptions(
+                name="item_id_1",
+                keys=[("item_id", 1)],
+                background=True,
             ),
         ],
     ),
