@@ -2,12 +2,11 @@ from pydantic import Field
 from typing import Annotated
 from datetime import datetime
 
-from superdesk.core.resources import fields
+from superdesk.core.resources import ResourceModelWithObjectId, fields
 from superdesk.core.resources.validators import validate_data_relation_async
-from .base import BasePlanningModel
 
 
-class DeliveryResourceModel(BasePlanningModel):
+class DeliveryResourceModel(ResourceModelWithObjectId):
     planning_id: Annotated[fields.Keyword, validate_data_relation_async("planning")]
     coverage_id: str | None = None
     assignment_id: Annotated[fields.ObjectId, validate_data_relation_async("assignments")]

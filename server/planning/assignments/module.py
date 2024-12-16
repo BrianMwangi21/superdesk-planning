@@ -46,23 +46,26 @@ delivery_resource_config = ResourceConfig(
                 name="planning_id_1",
                 keys=[("planning_id", 1)],
                 background=True,
+                unique=False,
             ),
             MongoIndexOptions(
                 name="assignment_id_1",
                 keys=[("assignment_id", 1)],
                 background=True,
+                unique=False,
             ),
             MongoIndexOptions(
                 name="coverage_id_1",
                 keys=[("coverage_id", 1)],
                 background=True,
+                unique=False,
             ),
             MongoIndexOptions(
                 name="item_id_1",
                 keys=[("item_id", 1)],
                 background=True,
+                unique=False,
             ),
         ],
     ),
-    elastic=ElasticResourceConfig(),
 )
