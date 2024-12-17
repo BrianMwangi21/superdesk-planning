@@ -57,7 +57,7 @@ class HistoryAsyncService(AsyncResourceService):
         if list(item.keys()) == ["_id"]:
             diff = updates
         else:
-            diff = self._changes(original, updates)
+            diff = await self._changes(original, updates)
             if updates:
                 item.update(updates)
 
