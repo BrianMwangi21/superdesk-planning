@@ -17,7 +17,9 @@ from .base import BasePlanningModel
 from .common import PlanningSchedule
 from .delivery import DeliveryResourceModel
 from .event import EventResourceModel
+from .event_history import EventsHistoryResourceModel
 from .planning import PlanningResourceModel
+from .planning_history import PlanningHistoryResourceModel
 from .assignment import AssignmentResourceModel
 from .published import PublishedPlanningModel
 from .enums import PostStates, UpdateMethods, WorkflowState
@@ -27,7 +29,9 @@ __all__ = [
     "BasePlanningModel",
     "DeliveryResourceModel",
     "EventResourceModel",
+    "EventsHistoryResourceModel",
     "PlanningResourceModel",
+    "PlanningHistoryResourceModel",
     "AssignmentResourceModel",
     "PublishedPlanningModel",
     "PlanningSchedule",
