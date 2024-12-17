@@ -5,8 +5,9 @@ from superdesk.core.resources import (
     ElasticResourceConfig,
 )
 
-from planning.types import EventResourceModel
+from planning.types import EventResourceModel, EventsHistoryResourceModel
 from .events_service import EventsAsyncService
+from .events_history_async_service import EventsHistoryAsyncService
 
 events_resource_config = ResourceConfig(
     name="events",
@@ -27,4 +28,10 @@ events_resource_config = ResourceConfig(
         ],
     ),
     elastic=ElasticResourceConfig(),
+)
+
+events_history_resource_config = ResourceConfig(
+    name="events_history",
+    data_class=EventsHistoryResourceModel,
+    service=EventsHistoryAsyncService,
 )

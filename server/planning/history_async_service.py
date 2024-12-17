@@ -40,7 +40,7 @@ fields_to_remove = [
 ]
 
 
-class DeliveryAsyncService(AsyncResourceService):
+class HistoryAsyncService(AsyncResourceService):
     """Provide common async methods for tracking history of Creation, Updates and Spiking to collections"""
 
     async def on_item_created(self, items, operation=None):
