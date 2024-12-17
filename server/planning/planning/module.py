@@ -3,6 +3,7 @@ from superdesk.core.resources import (
     MongoIndexOptions,
     MongoResourceConfig,
     ElasticResourceConfig,
+    RestEndpointConfig,
 )
 
 from planning.types import PlanningResourceModel, PlanningHistoryResourceModel
@@ -30,4 +31,5 @@ planning_history_resource_config = ResourceConfig(
     name="planning_history",
     data_class=PlanningHistoryResourceModel,
     service=PlanningHistoryAsyncService,
+    rest_endpoints=RestEndpointConfig(resource_methods=["GET"], item_methods=["GET"]),
 )
