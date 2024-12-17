@@ -9,6 +9,7 @@
 """Superdesk Files"""
 
 from copy import deepcopy
+from typing import Any
 from bson import ObjectId
 
 from superdesk.core import get_current_app
@@ -43,7 +44,7 @@ fields_to_remove = [
 class HistoryAsyncService(AsyncResourceService):
     """Provide common async methods for tracking history of Creation, Updates and Spiking to collections"""
 
-    async def on_item_created(self, items, operation=None):
+    async def on_item_created(self, items, operation: str | None = None):
         for item in items:
             if not item.get("duplicate_from"):
                 await self._save_history(
@@ -52,7 +53,7 @@ class HistoryAsyncService(AsyncResourceService):
                     operation or "create",
                 )
 
-    async def on_item_updated(self, updates, original, operation=None):
+    async def on_item_updated(self, updates: dict[str, Any], original: Any, operation: str | None = None):
         item = deepcopy(original)
         if list(item.keys()) == ["_id"]:
             diff = updates
@@ -63,24 +64,24 @@ class HistoryAsyncService(AsyncResourceService):
 
         await self._save_history(item, diff, operation or "edited")
 
-    async def on_spike(self, updates, original):
+    async def on_spike(self, updates: dict[str, Any], original: Any):
         await self.on_item_updated(updates, original, "spiked")
 
-    async def on_unspike(self, updates, original):
+    async def on_unspike(self, updates: dict[str, Any], original: Any):
         await self.on_item_updated(updates, original, "unspiked")
 
-    async def on_cancel(self, updates, original):
+    async def on_cancel(self, updates: dict[str, Any], original: Any):
         operation = "events_cancel" if original.get(ITEM_TYPE) == "event" else "planning_cancel"
         await self.on_item_updated(updates, original, operation)
 
-    async def on_reschedule(self, updates, original):
+    async def on_reschedule(self, updates: dict[str, Any], original: Any):
         await self.on_item_updated(updates, original, "reschedule")
 
-    async def on_reschedule_from(self, item):
+    async def on_reschedule_from(self, item: Any):
         new_item = deepcopy(item)
         await self._save_history({ID_FIELD: str(item[ID_FIELD])}, new_item, "reschedule_from")
 
-    async def on_postpone(self, updates, original):
+    async def on_postpone(self, updates: dict[str, Any], original: Any):
         await self.on_item_updated(updates, original, "postpone")
 
     async def get_user_id(self):
@@ -88,7 +89,7 @@ class HistoryAsyncService(AsyncResourceService):
         if user:
             return user.get("_id")
 
-    async def _changes(self, original, updates):
+    async def _changes(self, original: Any, updates: dict[str, Any]):
         """
         Given the original record and the updates calculate what has changed and what is new
 
@@ -105,7 +106,7 @@ class HistoryAsyncService(AsyncResourceService):
         modified.update(added)
         return await self._remove_unwanted_fields(modified)
 
-    async def _remove_unwanted_fields(self, update):
+    async def _remove_unwanted_fields(self, update: dict[str, Any]):
         if update:
             update_copy = deepcopy(update)
             for field in fields_to_remove:
@@ -114,5 +115,5 @@ class HistoryAsyncService(AsyncResourceService):
             return update_copy
         return update
 
-    async def _save_history(self, item, update, operation):
+    async def _save_history(self, item: Any, update: dict[str, Any], operation: str | None = None):
         raise NotImplementedError()

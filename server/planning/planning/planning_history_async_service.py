@@ -31,13 +31,13 @@ update_item_actions = ["assign_agenda", "add_featured", "remove_featured"]
 
 
 class PlanningHistoryAsyncService(HistoryAsyncService):
-    async def on_item_created(self, items, operation=None):
+    async def on_item_created(self, items: list[PlanningResourceModel], operation=None):
         add_to_planning = False
         if request and hasattr(request, "args"):
             add_to_planning = strtobool(request.args.get("add_to_planning", "false"))
         await super().on_item_created(items, "add_to_planning" if add_to_planning else None)
 
-    async def _save_history(self, item, update, operation):
+    async def _save_history(self, item, update: dict[str, Any], operation: str | None = None):
         user = await self.get_user_id()
         # confirmation could be from external fulfillment, so set the user to the assignor
         if operation == ASSIGNMENT_HISTORY_ACTIONS.CONFIRM and user is None:
@@ -84,14 +84,14 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
 
         await self._save_coverage_history(updates, original)
 
-    async def on_cancel(self, updates, original):
+    async def on_cancel(self, updates: dict[str, Any], original):
         await self.on_item_updated(
             updates,
             original,
             "planning_cancel" if original.get("lock_action") in ["planning_cancel", "edit"] else "events_cancel",
         )
 
-    async def _get_coverage_diff(self, updates, original):
+    async def _get_coverage_diff(self, updates: dict[str, Any], original):
         diff = {"coverage_id": original.get("coverage_id")}
         cov_plan_diff = await self._changes(original.get("planning"), updates.get("planning"))
 
@@ -103,7 +103,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
 
         return diff
 
-    async def _save_coverage_history(self, updates, original):
+    async def _save_coverage_history(self, updates: dict[str, Any], original):
         """Save the coverage history for the planning item"""
         item = deepcopy(original)
         original_coverages = {c.get("coverage_id"): c for c in (original or {}).get("coverages") or []}
@@ -176,7 +176,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
         for cov in deleted:
             await self._save_history(item, {"coverage_id": cov.get("coverage_id")}, "coverage_deleted")
 
-    async def on_spike(self, updates, original):
+    async def on_spike(self, updates: dict[str, Any], original):
         """Spike event
 
         On spike of a planning item the history of any agendas that the item belongs to will have an entry added to
@@ -187,7 +187,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
         """
         await super().on_spike(updates, original)
 
-    async def on_unspike(self, updates, original):
+    async def on_unspike(self, updates: dict[str, Any], original):
         await super().on_unspike(updates, original)
 
     async def on_duplicate(self, parent, duplicate):
@@ -197,7 +197,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
             "duplicate",
         )
 
-    async def on_duplicate_from(self, item, duplicate_id):
+    async def on_duplicate_from(self, item: dict[str, Any], duplicate_id):
         new_plan = deepcopy(item)
         new_plan["duplicate_id"] = duplicate_id
         await self._save_history({ID_FIELD: str(item[ID_FIELD])}, new_plan, "duplicate_from")

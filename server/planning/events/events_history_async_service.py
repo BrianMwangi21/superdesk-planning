@@ -10,8 +10,9 @@
 
 from copy import deepcopy
 import logging
+from typing import Any
 
-from planning.types.event import EventResourceModel
+from planning.types import EventResourceModel
 
 from superdesk.resource_fields import ID_FIELD
 from planning.utils import get_related_planning_for_events
@@ -22,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class EventsHistoryAsyncService(HistoryAsyncService):
-    async def on_item_created(self, items, operation=None):
+    async def on_item_created(self, items: list[EventResourceModel], operation: str | None = None):
         created_from_planning = []
         regular_events = []
         for item in items:
@@ -43,7 +44,7 @@ class EventsHistoryAsyncService(HistoryAsyncService):
         lookup = {"event_id": doc[ID_FIELD]}
         await self.delete_many(lookup=lookup)
 
-    async def on_item_updated(self, updates, original, operation=None):
+    async def on_item_updated(self, updates: dict[str, Any], original, operation: str | None = None):
         item = deepcopy(original)
         if list(item.keys()) == ["_id"]:
             diff = await self._remove_unwanted_fields(updates)
@@ -57,7 +58,7 @@ class EventsHistoryAsyncService(HistoryAsyncService):
 
         await self._save_history(item, diff, operation)
 
-    async def _save_history(self, item, update, operation):
+    async def _save_history(self, item, update: dict[str, Any], operation: str | None = None):
         history = {
             "event_id": item[ID_FIELD],
             "user_id": self.get_user_id(),
@@ -74,8 +75,8 @@ class EventsHistoryAsyncService(HistoryAsyncService):
             history["operation"] = "ingested"
         await self.create([history])
 
-    async def on_update_repetitions(self, updates, event_id, operation):
+    async def on_update_repetitions(self, updates: dict[str, Any], event_id, operation: str | None = None):
         await self.on_item_updated(updates, {"_id": event_id}, operation or "update_repetitions")
 
-    async def on_update_time(self, updates, original):
+    async def on_update_time(self, updates: dict[str, Any], original):
         await self.on_item_updated(updates, original, "update_time")
