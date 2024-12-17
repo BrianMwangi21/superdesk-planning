@@ -5,9 +5,10 @@ from superdesk.core.resources import (
     ElasticResourceConfig,
 )
 
-from planning.types import PlanningResourceModel
+from planning.types import PlanningResourceModel, PlanningHistoryResourceModel
 
 from .service import PlanningAsyncService
+from .planning_history_async_service import PlanningHistoryAsyncService
 
 planning_resource_config = ResourceConfig(
     name="planning",
@@ -23,4 +24,10 @@ planning_resource_config = ResourceConfig(
         ],
     ),
     elastic=ElasticResourceConfig(),
+)
+
+planning_history_resource_config = ResourceConfig(
+    name="planning_history",
+    data_class=PlanningHistoryResourceModel,
+    service=PlanningHistoryAsyncService,
 )

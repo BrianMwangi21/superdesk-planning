@@ -46,9 +46,9 @@ class EventsHistoryAsyncService(HistoryAsyncService):
     async def on_item_updated(self, updates, original, operation=None):
         item = deepcopy(original)
         if list(item.keys()) == ["_id"]:
-            diff = self._remove_unwanted_fields(updates)
+            diff = await self._remove_unwanted_fields(updates)
         else:
-            diff = self._changes(original, updates)
+            diff = await self._changes(original, updates)
             if updates:
                 item.update(updates)
 
