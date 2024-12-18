@@ -41,11 +41,11 @@ class EventsHistoryAsyncService(HistoryAsyncService[EventsHistoryResourceModel])
         await super().on_item_created(created_from_planning, "created_from_planning")
         await super().on_item_created(regular_events)
 
-    async def on_item_deleted(self, doc):
+    async def on_item_deleted(self, doc: dict[str, Any]):
         lookup = {"event_id": doc[ID_FIELD]}
         await self.delete_many(lookup=lookup)
 
-    async def on_item_updated(self, updates: dict[str, Any], original, operation: str | None = None):
+    async def on_item_updated(self, updates: dict[str, Any], original: dict[str, Any], operation: str | None = None):
         item = deepcopy(original)
         if list(item.keys()) == ["_id"]:
             diff = self._remove_unwanted_fields(updates)
@@ -76,8 +76,8 @@ class EventsHistoryAsyncService(HistoryAsyncService[EventsHistoryResourceModel])
             history["operation"] = "ingested"
         await self.create([history])
 
-    async def on_update_repetitions(self, updates: dict[str, Any], event_id, operation: str | None = None):
+    async def on_update_repetitions(self, updates: dict[str, Any], event_id: str, operation: str | None = None):
         await self.on_item_updated(updates, {"_id": event_id}, operation or "update_repetitions")
 
-    async def on_update_time(self, updates: dict[str, Any], original):
+    async def on_update_time(self, updates: dict[str, Any], original: dict[str, Any]):
         await self.on_item_updated(updates, original, "update_time")

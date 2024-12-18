@@ -47,7 +47,7 @@ fields_to_remove = [
 class HistoryAsyncService(AsyncResourceService[Generic[HistoryResourceModelType]]):
     """Provide common async methods for tracking history of Creation, Updates and Spiking to collections"""
 
-    async def on_item_created(self, items, operation: str | None = None):
+    async def on_item_created(self, items: list[Any], operation: str | None = None):
         for item in items:
             if not item.get("duplicate_from"):
                 await self._save_history(
@@ -92,7 +92,7 @@ class HistoryAsyncService(AsyncResourceService[Generic[HistoryResourceModelType]
         if user:
             return user.get("_id")
 
-    async def _changes(self, original, updates):
+    async def _changes(self, original: dict[str, Any], updates: dict[str, Any]):
         """
         Given the original record and the updates calculate what has changed and what is new
 
