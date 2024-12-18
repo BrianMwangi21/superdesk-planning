@@ -28,7 +28,6 @@ from superdesk.core import json, get_app_config
 from superdesk.core.resources.service import AsyncResourceService
 
 from planning import types
-from planning.common import TO_BE_CONFIRMED_FIELD
 from planning.types import EventResourceModel, PlanningResourceModel, AssignmentResourceModel, BasePlanningModel
 from planning.types import Event, Planning, PLANNING_RELATED_EVENT_LINK_TYPE, PlanningRelatedEventLink
 
@@ -255,6 +254,8 @@ def update_event_item_with_translations_value(event_item: Dict[str, Any], langua
 
 
 def is_coverage_planning_modified(updates: dict[str, Any], original: dict[str, Any]):
+    from planning.common import TO_BE_CONFIRMED_FIELD
+
     planning_updates = updates.get("planning", {})
     planning_original = original.get("planning", {})
 
