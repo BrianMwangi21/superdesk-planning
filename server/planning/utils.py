@@ -28,6 +28,7 @@ from superdesk.core import json, get_app_config
 from superdesk.core.resources.service import AsyncResourceService
 
 from planning import types
+from planning.common import TO_BE_CONFIRMED_FIELD
 from planning.types import EventResourceModel, PlanningResourceModel, AssignmentResourceModel, BasePlanningModel
 from planning.types import Event, Planning, PLANNING_RELATED_EVENT_LINK_TYPE, PlanningRelatedEventLink
 
@@ -251,3 +252,37 @@ def update_event_item_with_translations_value(event_item: Dict[str, Any], langua
             updated_event_item[translation["field"]] = translation["value"]
 
     return updated_event_item
+
+
+def is_coverage_planning_modified(updates: dict[str, Any], original: dict[str, Any]):
+    planning_updates = updates.get("planning", {})
+    planning_original = original.get("planning", {})
+
+    for key in planning_updates.keys():
+        if not key.startswith("_") and planning_updates[key] != planning_original.get(key):
+            return True
+
+    if (
+        TO_BE_CONFIRMED_FIELD in original
+        and TO_BE_CONFIRMED_FIELD in updates
+        and original.get(TO_BE_CONFIRMED_FIELD) != updates.get(TO_BE_CONFIRMED_FIELD)
+    ):
+        return True
+
+    return False
+
+
+def is_coverage_assignment_modified(updates: dict[str, Any], original: dict[str, Any]):
+    assigned_to_updates = updates.get("assigned_to", {})
+    assigned_to_original = original.get("assigned_to", {})
+
+    if assigned_to_updates:
+        keys = ["desk", "user", "state", "coverage_provider"]
+        for key in keys:
+            if key in assigned_to_updates and assigned_to_updates[key] != assigned_to_original.get(key):
+                return True
+
+        if assigned_to_updates.get("priority") and assigned_to_updates["priority"] != original.get("priority"):
+            return True
+
+    return False

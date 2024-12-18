@@ -14,6 +14,7 @@ from typing import Any
 
 from planning.types import EventResourceModel
 
+from planning.types import EventsHistoryResourceModel
 from superdesk.resource_fields import ID_FIELD
 from planning.utils import get_related_planning_for_events
 from planning.history_async_service import HistoryAsyncService
@@ -22,7 +23,7 @@ from planning.item_lock import LOCK_ACTION
 logger = logging.getLogger(__name__)
 
 
-class EventsHistoryAsyncService(HistoryAsyncService):
+class EventsHistoryAsyncService(HistoryAsyncService[EventsHistoryResourceModel]):
     async def on_item_created(self, items: list[EventResourceModel | Any], operation: str | None = None):
         created_from_planning = []
         regular_events = []
@@ -47,7 +48,7 @@ class EventsHistoryAsyncService(HistoryAsyncService):
     async def on_item_updated(self, updates: dict[str, Any], original, operation: str | None = None):
         item = deepcopy(original)
         if list(item.keys()) == ["_id"]:
-            diff = await self._remove_unwanted_fields(updates)
+            diff = self._remove_unwanted_fields(updates)
         else:
             diff = await self._changes(original, updates)
             if updates:

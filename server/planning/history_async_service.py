@@ -9,15 +9,18 @@
 """Superdesk Files"""
 
 from copy import deepcopy
-from typing import Any
+from typing import Any, Generic, TypeVar
 from bson import ObjectId
 
+from planning.types import HistoryResourceModel
 from superdesk.core import get_current_app
 from superdesk.core.resources import AsyncResourceService
 from superdesk.resource_fields import ID_FIELD
 from .item_lock import LOCK_ACTION, LOCK_USER, LOCK_TIME, LOCK_SESSION
 from superdesk.metadata.item import ITEM_TYPE
 
+
+HistoryResourceModelType = TypeVar("HistoryResourceModelType", bound=HistoryResourceModel)
 
 fields_to_remove = [
     "_id",
@@ -41,7 +44,7 @@ fields_to_remove = [
 ]
 
 
-class HistoryAsyncService(AsyncResourceService):
+class HistoryAsyncService(AsyncResourceService[Generic[HistoryResourceModelType]]):
     """Provide common async methods for tracking history of Creation, Updates and Spiking to collections"""
 
     async def on_item_created(self, items, operation: str | None = None):
@@ -89,7 +92,7 @@ class HistoryAsyncService(AsyncResourceService):
         if user:
             return user.get("_id")
 
-    async def _changes(self, original: Any, updates: dict[str, Any]):
+    async def _changes(self, original, updates):
         """
         Given the original record and the updates calculate what has changed and what is new
 
@@ -104,9 +107,9 @@ class HistoryAsyncService(AsyncResourceService):
         added_keys = updates_keys - original_keys
         added = {a: updates[a] for a in added_keys}
         modified.update(added)
-        return await self._remove_unwanted_fields(modified)
+        return self._remove_unwanted_fields(modified)
 
-    async def _remove_unwanted_fields(self, update: dict[str, Any]):
+    def _remove_unwanted_fields(self, update: dict[str, Any]):
         if update:
             update_copy = deepcopy(update)
             for field in fields_to_remove:

@@ -35,5 +35,14 @@ events_history_resource_config = ResourceConfig(
     name="events_history",
     data_class=EventsHistoryResourceModel,
     service=EventsHistoryAsyncService,
+    mongo=MongoResourceConfig(
+        indexes=[
+            MongoIndexOptions(
+                name="event_id",
+                keys=[("event_id", 1)],
+                unique=False,
+            ),
+        ],
+    ),
     rest_endpoints=RestEndpointConfig(resource_methods=["GET"], item_methods=["GET"]),
 )

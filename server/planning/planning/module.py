@@ -31,5 +31,14 @@ planning_history_resource_config = ResourceConfig(
     name="planning_history",
     data_class=PlanningHistoryResourceModel,
     service=PlanningHistoryAsyncService,
+    mongo=MongoResourceConfig(
+        indexes=[
+            MongoIndexOptions(
+                name="planning_id",
+                keys=[("planning_id", 1)],
+                unique=False,
+            ),
+        ],
+    ),
     rest_endpoints=RestEndpointConfig(resource_methods=["GET"], item_methods=["GET"]),
 )

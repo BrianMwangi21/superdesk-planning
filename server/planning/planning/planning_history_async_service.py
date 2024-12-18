@@ -13,9 +13,9 @@ from copy import deepcopy
 from typing import Any
 
 
+from planning.types import PlanningHistoryResourceModel
 from superdesk.flask import request
 from superdesk.resource_fields import ID_FIELD
-from superdesk import get_resource_service
 from superdesk.default_settings import strtobool
 
 from planning.types import PlanningResourceModel
@@ -23,14 +23,18 @@ from planning.history_async_service import HistoryAsyncService
 from planning.common import WORKFLOW_STATE, ITEM_ACTIONS, ASSIGNMENT_WORKFLOW_STATE
 from planning.item_lock import LOCK_ACTION
 from planning.assignments.assignments_history import ASSIGNMENT_HISTORY_ACTIONS
-from planning.utils import get_related_event_links_for_planning
+from planning.utils import (
+    get_related_event_links_for_planning,
+    is_coverage_planning_modified,
+    is_coverage_assignment_modified,
+)
 
 
 logger = logging.getLogger(__name__)
 update_item_actions = ["assign_agenda", "add_featured", "remove_featured"]
 
 
-class PlanningHistoryAsyncService(HistoryAsyncService):
+class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceModel]):
     async def on_item_created(self, items: list[PlanningResourceModel], operation=None):
         add_to_planning = False
         if request and hasattr(request, "args"):
@@ -42,10 +46,11 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
         # confirmation could be from external fulfillment, so set the user to the assignor
         if operation == ASSIGNMENT_HISTORY_ACTIONS.CONFIRM and user is None:
             assigned_to = update.get("assigned_to")
-            user = update.get(
-                "proxy_user",
-                assigned_to.get("assignor_user", assigned_to.get("assignor_desk")),
-            )
+            if assigned_to is not None:
+                user = update.get(
+                    "proxy_user",
+                    assigned_to.get("assignor_user", assigned_to.get("assignor_desk")),
+                )
         history = {
             "planning_id": item[ID_FIELD],
             "user_id": user,
@@ -63,7 +68,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
     ):
         item = deepcopy(original.to_dict())
         if list(item.keys()) == ["_id"]:
-            diff = await self._remove_unwanted_fields(updates)
+            diff = self._remove_unwanted_fields(updates)
         else:
             diff = await self._changes(original, updates)
             diff.pop("coverages", None)
@@ -109,16 +114,15 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
         original_coverages = {c.get("coverage_id"): c for c in (original or {}).get("coverages") or []}
         updates_coverages = {c.get("coverage_id"): c for c in (updates or {}).get("coverages") or []}
         added, deleted, updated = [], [], []
-        planning_service = get_resource_service("planning")
         add_to_planning = strtobool(request.args.get("add_to_planning", "false"))
 
         for coverage_id, coverage in updates_coverages.items():
             original_coverage = original_coverages.get(coverage_id)
             if not original_coverage:
                 added.append(coverage)
-            elif planning_service.is_coverage_planning_modified(
+            elif is_coverage_planning_modified(coverage, original_coverage) or is_coverage_assignment_modified(
                 coverage, original_coverage
-            ) or planning_service.is_coverage_assignment_modified(coverage, original_coverage):
+            ):
                 updated.append(coverage)
 
         deleted = [coverage for cid, coverage in original_coverages.items() if cid not in updates_coverages]
@@ -143,35 +147,36 @@ class PlanningHistoryAsyncService(HistoryAsyncService):
             if len(diff.keys()) > 1:
                 await self._save_history(item, diff, "coverage_edited")
 
-            if (
-                cov.get("workflow_status") == WORKFLOW_STATE.CANCELLED
-                and original_coverage.get("workflow_status") != WORKFLOW_STATE.CANCELLED
-            ):
-                operation = "coverage_cancelled"
-                diff = {
-                    "coverage_id": cov.get("coverage_id"),
-                    "workflow_status": cov["workflow_status"],
-                }
-                if not original.get(LOCK_ACTION):
-                    operation = "events_cancel"
-                elif (
-                    original.get(LOCK_ACTION) == ITEM_ACTIONS.PLANNING_CANCEL
-                    or updates.get("state") == WORKFLOW_STATE.CANCELLED
+            if original_coverage is not None:
+                if (
+                    cov.get("workflow_status") == WORKFLOW_STATE.CANCELLED
+                    and original_coverage.get("workflow_status") != WORKFLOW_STATE.CANCELLED
                 ):
-                    # If cancelled through item action or through editor
-                    operation = "planning_cancel"
+                    operation = "coverage_cancelled"
+                    diff = {
+                        "coverage_id": cov.get("coverage_id"),
+                        "workflow_status": cov["workflow_status"],
+                    }
+                    if not original.get(LOCK_ACTION):
+                        operation = "events_cancel"
+                    elif (
+                        original.get(LOCK_ACTION) == ITEM_ACTIONS.PLANNING_CANCEL
+                        or updates.get("state") == WORKFLOW_STATE.CANCELLED
+                    ):
+                        # If cancelled through item action or through editor
+                        operation = "planning_cancel"
 
-                await self._save_history(item, diff, operation)
+                    await self._save_history(item, diff, operation)
 
-            # If assignment was added in an update
-            if cov.get("assigned_to", {}).get("assignment_id") and not (original_coverage.get("assigned_to") or {}).get(
-                "assignment_id"
-            ):
-                diff = {
-                    "coverage_id": cov.get("coverage_id"),
-                    "assigned_to": cov["assigned_to"],
-                }
-                await self._save_history(item, diff, "coverage_assigned")
+                # If assignment was added in an update
+                if cov.get("assigned_to", {}).get("assignment_id") and not (
+                    original_coverage.get("assigned_to") or {}
+                ).get("assignment_id"):
+                    diff = {
+                        "coverage_id": cov.get("coverage_id"),
+                        "assigned_to": cov["assigned_to"],
+                    }
+                    await self._save_history(item, diff, "coverage_assigned")
 
         for cov in deleted:
             await self._save_history(item, {"coverage_id": cov.get("coverage_id")}, "coverage_deleted")
