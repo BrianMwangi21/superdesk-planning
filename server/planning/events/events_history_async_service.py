@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 class EventsHistoryAsyncService(HistoryAsyncService[EventsHistoryResourceModel]):
-    async def on_item_created(self, items: list[EventResourceModel | Any], operation: str | None = None):
+    async def on_item_created(self, items: list[dict[str, Any]], operation: str | None = None):
         created_from_planning = []
         regular_events = []
         for item in items:
@@ -59,7 +59,7 @@ class EventsHistoryAsyncService(HistoryAsyncService[EventsHistoryResourceModel])
 
         await self._save_history(item, diff, operation)
 
-    async def _save_history(self, item, update: dict[str, Any], operation: str | None = None):
+    async def _save_history(self, item: dict[str, Any], update: dict[str, Any], operation: str | None = None):
         history = {
             "event_id": item[ID_FIELD],
             "user_id": self.get_user_id(),

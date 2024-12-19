@@ -47,7 +47,7 @@ fields_to_remove = [
 class HistoryAsyncService(AsyncResourceService[Generic[HistoryResourceModelType]]):
     """Provide common async methods for tracking history of Creation, Updates and Spiking to collections"""
 
-    async def on_item_created(self, items: list[Any], operation: str | None = None):
+    async def on_item_created(self, items: list[dict[str, Any]], operation: str | None = None):
         for item in items:
             if not item.get("duplicate_from"):
                 await self._save_history(
@@ -56,7 +56,7 @@ class HistoryAsyncService(AsyncResourceService[Generic[HistoryResourceModelType]
                     operation or "create",
                 )
 
-    async def on_item_updated(self, updates: dict[str, Any], original: Any, operation: str | None = None):
+    async def on_item_updated(self, updates: dict[str, Any], original: dict[str, Any], operation: str | None = None):
         item = deepcopy(original)
         if list(item.keys()) == ["_id"]:
             diff = updates
@@ -67,24 +67,24 @@ class HistoryAsyncService(AsyncResourceService[Generic[HistoryResourceModelType]
 
         await self._save_history(item, diff, operation or "edited")
 
-    async def on_spike(self, updates: dict[str, Any], original: Any):
+    async def on_spike(self, updates: dict[str, Any], original: dict[str, Any]):
         await self.on_item_updated(updates, original, "spiked")
 
-    async def on_unspike(self, updates: dict[str, Any], original: Any):
+    async def on_unspike(self, updates: dict[str, Any], original: dict[str, Any]):
         await self.on_item_updated(updates, original, "unspiked")
 
-    async def on_cancel(self, updates: dict[str, Any], original: Any):
+    async def on_cancel(self, updates: dict[str, Any], original: dict[str, Any]):
         operation = "events_cancel" if original.get(ITEM_TYPE) == "event" else "planning_cancel"
         await self.on_item_updated(updates, original, operation)
 
-    async def on_reschedule(self, updates: dict[str, Any], original: Any):
+    async def on_reschedule(self, updates: dict[str, Any], original: dict[str, Any]):
         await self.on_item_updated(updates, original, "reschedule")
 
-    async def on_reschedule_from(self, item: Any):
+    async def on_reschedule_from(self, item: dict[str, Any]):
         new_item = deepcopy(item)
         await self._save_history({ID_FIELD: str(item[ID_FIELD])}, new_item, "reschedule_from")
 
-    async def on_postpone(self, updates: dict[str, Any], original: Any):
+    async def on_postpone(self, updates: dict[str, Any], original: dict[str, Any]):
         await self.on_item_updated(updates, original, "postpone")
 
     async def get_user_id(self):

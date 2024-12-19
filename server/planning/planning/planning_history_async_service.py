@@ -13,6 +13,7 @@ from copy import deepcopy
 from typing import Any
 
 
+from planning.core.service import PlanningResourceModelType
 from planning.types import PlanningHistoryResourceModel
 from superdesk.flask import request
 from superdesk.resource_fields import ID_FIELD
@@ -35,7 +36,7 @@ update_item_actions = ["assign_agenda", "add_featured", "remove_featured"]
 
 
 class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceModel]):
-    async def on_item_created(self, items: list[PlanningResourceModel], operation=None):
+    async def on_item_created(self, items: list[dict[str, Any]], operation=None):
         add_to_planning = False
         if request and hasattr(request, "args"):
             add_to_planning = strtobool(request.args.get("add_to_planning", "false"))
@@ -63,14 +64,12 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
 
         await self.create([history])
 
-    async def on_item_updated(
-        self, updates: dict[str, Any], original: PlanningResourceModel, operation: str | None = None
-    ):
-        item = deepcopy(original.to_dict())
+    async def on_item_updated(self, updates: dict[str, Any], original: dict[str, Any], operation: str | None = None):
+        item = deepcopy(original)
         if list(item.keys()) == ["_id"]:
             diff = self._remove_unwanted_fields(updates)
         else:
-            diff = await self._changes(original.to_dict(), updates)
+            diff = await self._changes(original, updates)
             diff.pop("coverages", None)
             if updates:
                 item.update(updates)
@@ -87,9 +86,9 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
 
             await self._save_history(item, diff, operation)
 
-        await self._save_coverage_history(updates, original.to_dict())
+        await self._save_coverage_history(updates, original)
 
-    async def on_cancel(self, updates: dict[str, Any], original):
+    async def on_cancel(self, updates: dict[str, Any], original: dict[str, Any]):
         await self.on_item_updated(
             updates,
             original,
@@ -181,7 +180,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
         for cov in deleted:
             await self._save_history(item, {"coverage_id": cov.get("coverage_id")}, "coverage_deleted")
 
-    async def on_spike(self, updates: dict[str, Any], original: PlanningResourceModel):
+    async def on_spike(self, updates: dict[str, Any], original: dict[str, Any]):
         """Spike event
 
         On spike of a planning item the history of any agendas that the item belongs to will have an entry added to
@@ -192,7 +191,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
         """
         await super().on_spike(updates, original)
 
-    async def on_unspike(self, updates: dict[str, Any], original: PlanningResourceModel):
+    async def on_unspike(self, updates: dict[str, Any], original: dict[str, Any]):
         await super().on_unspike(updates, original)
 
     async def on_duplicate(self, parent: dict[str, Any], duplicate: dict[str, Any]):
