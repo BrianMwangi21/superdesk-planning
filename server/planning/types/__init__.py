@@ -21,6 +21,7 @@ from .planning import PlanningResourceModel
 from .assignment import AssignmentResourceModel
 from .published import PublishedPlanningModel
 from .enums import PostStates, UpdateMethods, WorkflowState
+from .planning_types import PlanningTypesResourceModel
 
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "PlanningResourceModel",
     "AssignmentResourceModel",
     "PublishedPlanningModel",
+    "PlanningTypesResourceModel",
     "PlanningSchedule",
     "PostStates",
     "UpdateMethods",
