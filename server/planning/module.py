@@ -3,6 +3,7 @@ from planning.events import events_resource_config
 from planning.planning import planning_resource_config
 from planning.assignments import assignments_resource_config, delivery_resource_config
 from planning.published import published_resource_config
+from planning.content_profiles import planning_types_resource_config
 
 
 module = Module(
@@ -13,5 +14,6 @@ module = Module(
         assignments_resource_config,
         published_resource_config,
         delivery_resource_config,
+        planning_types_resource_config,
     ],
 )
