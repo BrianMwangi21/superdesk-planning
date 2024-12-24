@@ -87,7 +87,7 @@ class PlanningTypesAsyncService(AsyncResourceService[PlanningTypesResourceModel]
 
     async def merge_planning_type(self, planning_type: dict[str, Any], default_planning_type: dict[str, Any]):
         # Update schema fields with database schema fields
-        default_type = {"schema": {}, "editor": {}}
+        default_type: dict[str, Any] = {"schema": {}, "editor": {}}
         updated_planning_type = deepcopy(default_planning_type or default_type)
 
         updated_planning_type.setdefault("groups", {})
