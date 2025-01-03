@@ -1,13 +1,3 @@
-# -*- coding: utf-8; -*-
-#
-# This file is part of Superdesk.
-#
-# Copyright 2021 Sourcefabric z.u. and contributors.
-#
-# For the full copyright and license information, please see the
-# AUTHORS and LICENSE files distributed with this source code, or
-# at https://www.sourcefabric.org/superdesk/license
-
 from typing import Any
 from copy import deepcopy
 
@@ -36,13 +26,26 @@ class PlanningTypesAsyncService(AsyncResourceService[PlanningTypesResourceModel]
         version: int | None = None,
         **lookup,
     ) -> PlanningTypesResourceModel | None:
+        """
+        Overrides the `find_one` method to merge default planning type configurations
+        with database entries. If no entry exists in the database, it returns a default
+        planning type configuration.
+        """
         try:
-            if req is None:
-                planning_type = await super().find_one(
-                    projection=projection, use_mongo=use_mongo, version=version, **lookup
+            search_request = (
+                req
+                if req is not None
+                else SearchRequest(
+                    where=lookup,
+                    page=1,
+                    max_results=1,
+                    projection=projection,
+                    use_mongo=use_mongo,
+                    version=version,
                 )
-            else:
-                planning_type = await self.find_one(req)
+            )
+
+            planning_type = await super().find_one(search_request)
 
             # lookup name from either **lookup of planning_item(if lookup has only '_id')
             lookup_name = lookup.get("name")
