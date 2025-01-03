@@ -1,25 +1,12 @@
-# This file is part of Superdesk.
-#
-# Copyright 2013, 2014 Sourcefabric z.u. and contributors.
-#
-# For the full copyright and license information, please see the
-# AUTHORS and LICENSE files distributed with this source code, or
-# at https://www.sourcefabric.org/superdesk/license
-
-"""Superdesk Files"""
-
 import logging
 from copy import deepcopy
 from typing import Any
 
-
-from planning.core.service import PlanningResourceModelType
 from planning.types import PlanningHistoryResourceModel
 from superdesk.flask import request
 from superdesk.resource_fields import ID_FIELD
 from superdesk.default_settings import strtobool
 
-from planning.types import PlanningResourceModel
 from planning.history_async_service import HistoryAsyncService
 from planning.common import WORKFLOW_STATE, ITEM_ACTIONS, ASSIGNMENT_WORKFLOW_STATE
 from planning.item_lock import LOCK_ACTION
@@ -30,12 +17,13 @@ from planning.utils import (
     is_coverage_assignment_modified,
 )
 
-
 logger = logging.getLogger(__name__)
 update_item_actions = ["assign_agenda", "add_featured", "remove_featured"]
 
 
 class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceModel]):
+    """Async service to manage asynchronous history operations for planning items."""
+
     async def on_item_created(self, items: list[dict[str, Any]], operation=None):
         add_to_planning = False
         if request and hasattr(request, "args"):
@@ -44,8 +32,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
 
     async def _save_history(self, item, update: dict[str, Any], operation: str | None = None):
         user = await self.get_user_id()
-        # confirmation could be from external fulfillment, so set the user to the assignor
-        if operation == ASSIGNMENT_HISTORY_ACTIONS.CONFIRM and user is None:  # type: ignore
+        if operation == ASSIGNMENT_HISTORY_ACTIONS.CONFIRM and user is None:
             assigned_to = update.get("assigned_to")
             if assigned_to is not None:
                 user = update.get(
@@ -96,6 +83,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
         )
 
     async def _get_coverage_diff(self, updates: dict[str, Any], original: dict[str, Any]):
+        """Function to compute the difference between the original and updated coverage details."""
         diff = {"coverage_id": original.get("coverage_id")}
         cov_plan_diff = await self._changes(original.get("planning", {}), updates.get("planning", {}))
 
@@ -108,7 +96,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
         return diff
 
     async def _save_coverage_history(self, updates: dict[str, Any], original: dict[str, Any]):
-        """Save the coverage history for the planning item"""
+        """Function to save the history of changes to coverages associated with a planning item."""
         item = deepcopy(original)
         original_coverages = {c.get("coverage_id"): c for c in (original or {}).get("coverages") or []}
         updates_coverages = {c.get("coverage_id"): c for c in (updates or {}).get("coverages") or []}
@@ -127,7 +115,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
         deleted = [coverage for cid, coverage in original_coverages.items() if cid not in updates_coverages]
 
         for cov in added:
-            if cov.get("assigned_to", {}).get("state") == ASSIGNMENT_WORKFLOW_STATE.ASSIGNED:  # type: ignore
+            if cov.get("assigned_to", {}).get("state") == ASSIGNMENT_WORKFLOW_STATE.ASSIGNED:
                 diff = {"coverage_id": cov.get("coverage_id")}
                 diff.update(cov)
                 await self._save_history(
@@ -159,15 +147,13 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
                     if not original.get(LOCK_ACTION):
                         operation = "events_cancel"
                     elif (
-                        original.get(LOCK_ACTION) == ITEM_ACTIONS.PLANNING_CANCEL  # type: ignore
+                        original.get(LOCK_ACTION) == ITEM_ACTIONS.PLANNING_CANCEL
                         or updates.get("state") == WORKFLOW_STATE.CANCELLED
                     ):
-                        # If cancelled through item action or through editor
                         operation = "planning_cancel"
 
                     await self._save_history(item, diff, operation)
 
-                # If assignment was added in an update
                 if cov.get("assigned_to", {}).get("assignment_id") and not (
                     original_coverage.get("assigned_to") or {}
                 ).get("assignment_id"):
@@ -181,20 +167,13 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
             await self._save_history(item, {"coverage_id": cov.get("coverage_id")}, "coverage_deleted")
 
     async def on_spike(self, updates: dict[str, Any], original: dict[str, Any]):
-        """Spike event
-
-        On spike of a planning item the history of any agendas that the item belongs to will have an entry added to
-        their history as effectively the scope of what the agenda contains has changed.
-        :param updates:
-        :param original:
-        :return:
-        """
         await super().on_spike(updates, original)
 
     async def on_unspike(self, updates: dict[str, Any], original: dict[str, Any]):
         await super().on_unspike(updates, original)
 
     async def on_duplicate(self, parent: dict[str, Any], duplicate: dict[str, Any]):
+        """Function to save a history entry when a planning item is duplicated."""
         await self._save_history(
             {ID_FIELD: str(parent[ID_FIELD])},
             {"duplicate_id": str(duplicate[ID_FIELD])},
@@ -202,6 +181,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
         )
 
     async def on_duplicate_from(self, item: dict[str, Any], duplicate_id: str):
+        """Function to save a history entry for an item duplicated from another item."""
         new_plan = deepcopy(item)
         new_plan["duplicate_id"] = duplicate_id
         await self._save_history({ID_FIELD: str(item[ID_FIELD])}, new_plan, "duplicate_from")

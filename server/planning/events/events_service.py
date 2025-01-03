@@ -1,4 +1,3 @@
-from planning.events.events_history_async_service import EventsHistoryAsyncService
 import pytz
 import itertools
 
@@ -40,6 +39,7 @@ from planning.common import (
     post_required,
     update_post_item,
 )
+from planning.events.events_history_async_service import EventsHistoryAsyncService
 from planning.planning import PlanningAsyncService
 from planning.core.service import BasePlanningAsyncService
 from planning.utils import (
