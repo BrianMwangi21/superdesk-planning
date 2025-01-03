@@ -3,14 +3,13 @@ from copy import deepcopy
 from typing import Any
 
 from planning.types import PlanningHistoryResourceModel
+from planning.types.enums import AssignmentHistoryActions, AssignmentWorkflowState, ItemActions, WorkflowState
 from superdesk.flask import request
 from superdesk.resource_fields import ID_FIELD
 from superdesk.default_settings import strtobool
 
 from planning.history_async_service import HistoryAsyncService
-from planning.common import WORKFLOW_STATE, ITEM_ACTIONS, ASSIGNMENT_WORKFLOW_STATE
 from planning.item_lock import LOCK_ACTION
-from planning.assignments.assignments_history import ASSIGNMENT_HISTORY_ACTIONS
 from planning.utils import (
     get_related_event_links_for_planning,
     is_coverage_planning_modified,
@@ -32,7 +31,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
 
     async def _save_history(self, item, update: dict[str, Any], operation: str | None = None):
         user = await self.get_user_id()
-        if operation == ASSIGNMENT_HISTORY_ACTIONS.CONFIRM and user is None:
+        if operation == AssignmentHistoryActions.CONFIRM.value and user is None:
             assigned_to = update.get("assigned_to")
             if assigned_to is not None:
                 user = update.get(
@@ -115,7 +114,7 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
         deleted = [coverage for cid, coverage in original_coverages.items() if cid not in updates_coverages]
 
         for cov in added:
-            if cov.get("assigned_to", {}).get("state") == ASSIGNMENT_WORKFLOW_STATE.ASSIGNED:
+            if cov.get("assigned_to", {}).get("state") == AssignmentWorkflowState.ASSIGNED.value:
                 diff = {"coverage_id": cov.get("coverage_id")}
                 diff.update(cov)
                 await self._save_history(
@@ -136,8 +135,8 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
 
             if original_coverage is not None:
                 if (
-                    cov.get("workflow_status") == WORKFLOW_STATE.CANCELLED
-                    and original_coverage.get("workflow_status") != WORKFLOW_STATE.CANCELLED
+                    cov.get("workflow_status") == WorkflowState.CANCELLED.value
+                    and original_coverage.get("workflow_status") != WorkflowState.CANCELLED.value
                 ):
                     operation = "coverage_cancelled"
                     diff = {
@@ -147,8 +146,8 @@ class PlanningHistoryAsyncService(HistoryAsyncService[PlanningHistoryResourceMod
                     if not original.get(LOCK_ACTION):
                         operation = "events_cancel"
                     elif (
-                        original.get(LOCK_ACTION) == ITEM_ACTIONS.PLANNING_CANCEL
-                        or updates.get("state") == WORKFLOW_STATE.CANCELLED
+                        original.get(LOCK_ACTION) == ItemActions.PLANNING_CANCEL.value
+                        or updates.get("state") == WorkflowState.CANCELLED.value
                     ):
                         operation = "planning_cancel"
 
