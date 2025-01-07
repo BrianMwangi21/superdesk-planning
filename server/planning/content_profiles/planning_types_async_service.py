@@ -2,8 +2,8 @@ from typing import Any
 from copy import deepcopy
 
 from superdesk.core.resources import AsyncResourceService
-from superdesk.core.types import SearchRequest, ProjectedFieldArg
-from superdesk.utils import ListCursor
+from superdesk.core.resources.cursor import ElasticsearchResourceCursorAsync
+from superdesk.core.types import SearchRequest, ProjectedFieldArg, SortParam
 
 from planning.common import planning_link_updates_to_coverage, get_config_event_related_item_search_provider_name
 from planning.types import PlanningTypesResourceModel
@@ -50,7 +50,7 @@ class PlanningTypesAsyncService(AsyncResourceService[PlanningTypesResourceModel]
             # lookup name from either **lookup of planning_item(if lookup has only '_id')
             lookup_name = lookup.get("name")
             if not lookup_name and planning_type:
-                lookup_name = planning_type.to_dict().get("name")
+                lookup_name = planning_type.name
 
             default_planning_type = deepcopy(
                 next(
@@ -59,16 +59,39 @@ class PlanningTypesAsyncService(AsyncResourceService[PlanningTypesResourceModel]
                 )
             )
             if not planning_type:
-                await self._remove_unsupported_fields(default_planning_type)
+                self._remove_unsupported_fields(default_planning_type)
                 return PlanningTypesResourceModel(**default_planning_type)
 
-            await self.merge_planning_type(planning_type.to_dict(), default_planning_type)
+            self.merge_planning_type(planning_type.to_dict(), default_planning_type)
             return planning_type
         except IndexError:
             return None
 
-    async def get(self, req, lookup) -> ListCursor:
-        cursor = await super().search(lookup)
+    async def find(
+        self,
+        req: SearchRequest | dict,
+        page: int = 1,
+        max_results: int = 25,
+        sort: SortParam | None = None,
+        projection: ProjectedFieldArg | None = None,
+        use_mongo: bool = False,
+    ) -> ElasticsearchResourceCursorAsync[PlanningTypesResourceModel]:
+        """
+        Overrides the base `find` to return a cursor containing planning types
+        with default configurations merged into the results from the database. If a planning
+        type is not present in the database, a default configuration is added.
+        """
+
+        if isinstance(req, SearchRequest):
+            req = {
+                "where": req.where,
+                "page": req.page,
+                "max_results": req.max_results,
+                "sort": req.sort,
+                "projection": req.projection,
+            }
+
+        cursor = await super().find(req, page, max_results, sort, projection, use_mongo)
         planning_types = await cursor.to_list_raw()
         merged_planning_types = []
 
@@ -80,15 +103,15 @@ class PlanningTypesAsyncService(AsyncResourceService[PlanningTypesResourceModel]
 
             # If nothing is defined in database for this planning_type, use default
             if planning_type is None:
-                await self._remove_unsupported_fields(default_planning_type)
+                self._remove_unsupported_fields(default_planning_type)
                 merged_planning_types.append(default_planning_type)
             else:
-                await self.merge_planning_type(planning_type, default_planning_type)
+                self.merge_planning_type(planning_type, default_planning_type)
                 merged_planning_types.append(planning_type)
 
-        return ListCursor(merged_planning_types)
+        return ElasticsearchResourceCursorAsync(data_class=PlanningTypesResourceModel, hits=merged_planning_types)
 
-    async def merge_planning_type(self, planning_type: dict[str, Any], default_planning_type: dict[str, Any]):
+    def merge_planning_type(self, planning_type: dict[str, Any], default_planning_type: dict[str, Any]):
         # Update schema fields with database schema fields
         default_type: dict[str, Any] = {"schema": {}, "editor": {}}
         updated_planning_type = deepcopy(default_planning_type or default_type)
@@ -116,9 +139,9 @@ class PlanningTypesAsyncService(AsyncResourceService[PlanningTypesResourceModel]
         planning_type["schema"] = updated_planning_type["schema"]
         planning_type["editor"] = updated_planning_type["editor"]
         planning_type["groups"] = updated_planning_type["groups"]
-        await self._remove_unsupported_fields(planning_type)
+        self._remove_unsupported_fields(planning_type)
 
-    async def _remove_unsupported_fields(self, planning_type: dict[str, Any]):
+    def _remove_unsupported_fields(self, planning_type: dict[str, Any]):
         # Disable Event ``related_items`` field
         # if ``EVENT_RELATED_ITEM_SEARCH_PROVIDER_NAME`` config is not set
         if planning_type.get("name") == "event" and not get_config_event_related_item_search_provider_name():

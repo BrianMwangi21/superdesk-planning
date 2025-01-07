@@ -45,4 +45,4 @@ class PlanningTypesResourceModel(ResourceModel):
     updated_by: Annotated[ObjectId, validate_data_relation_async("users")] | None = None
     firstcreated: datetime = Field(default_factory=utcnow)
     versioncreated: datetime = Field(default_factory=utcnow)
-    init_version: int
+    init_version: int | None = None
