@@ -1,0 +1,60 @@
+from typing import Any
+from planning.core.service import BasePlanningAsyncService
+from planning.types import AgendasResourceModel
+from superdesk.resource_fields import ID_FIELD, ITEMS
+from planning.common import set_original_creator
+from apps.auth import get_user_id
+from superdesk import get_resource_service
+from superdesk.errors import SuperdeskApiError
+from superdesk.notification import push_notification
+
+
+class AgendasAsyncService(BasePlanningAsyncService[AgendasResourceModel]):
+    async def _generate_planning_info(self, docs):
+        # TODO-ASYNC: Change this when async planning service is done
+        planning_service = get_resource_service("planning")
+        for doc in docs:
+            doc["plannings"] = planning_service.get_planning_by_agenda_id(doc.get(ID_FIELD)).docs
+
+    async def on_fetched(self, docs):
+        await self._generate_planning_info(docs.get(ITEMS))
+
+    async def on_fetched_item(self, doc):
+        await self._generate_planning_info([doc])
+
+    async def on_create(self, docs: list[AgendasResourceModel]) -> None:
+        for doc in docs:
+            doc_dict = doc.to_dict()
+            set_original_creator(doc_dict)
+
+    async def on_created(self, docs: list[AgendasResourceModel]) -> None:
+        for doc in docs:
+            doc_dict = doc.to_dict()
+            push_notification(
+                "agenda:created",
+                item=str(doc_dict[ID_FIELD]),
+                user=str(doc_dict.get("original_creator", "")),
+            )
+
+    async def on_update(self, updates: dict[str, Any], original: AgendasResourceModel) -> None:
+        user_id = get_user_id()
+        if user_id:
+            updates["version_creator"] = get_user_id()
+
+    async def on_updated(self, updates: dict[str, Any], original: AgendasResourceModel) -> None:
+        await self._generate_planning_info([updates])
+        push_notification(
+            "agenda:updated",
+            item=str(original.to_dict()[ID_FIELD]),
+            user=str(updates.get("version_creator", "")),
+        )
+
+    async def on_delete(self, doc: AgendasResourceModel):
+        # TODO-ASYNC: Change this when async planning service is done
+        if get_resource_service("planning").get_planning_by_agenda_id(doc.get(ID_FIELD)).count() > 0:
+            raise SuperdeskApiError.badRequestError(
+                message="Agenda is referenced by Planning items. " "Cannot delete Agenda"
+            )
+
+    async def on_deleted(self, doc: AgendasResourceModel):
+        push_notification("agenda:deleted", item=str(doc.to_dict()[ID_FIELD]))
