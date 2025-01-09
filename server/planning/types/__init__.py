@@ -22,6 +22,7 @@ from .planning import PlanningResourceModel
 from .assignment import AssignmentResourceModel
 from .published import PublishedPlanningModel
 from .enums import PostStates, UpdateMethods, WorkflowState
+from .agendas import AgendasResourceModel
 from .planning_types import PlanningTypesResourceModel
 
 
@@ -40,6 +41,7 @@ __all__ = [
     "PostStates",
     "UpdateMethods",
     "WorkflowState",
+    "AgendasResourceModel",
 ]
 
 
