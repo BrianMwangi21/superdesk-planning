@@ -10,7 +10,6 @@ PlanningResourceModelType = TypeVar("PlanningResourceModelType", bound=BasePlann
 
 
 class BasePlanningAsyncService(AsyncResourceService[Generic[PlanningResourceModelType]]):
-
     async def on_create(self, docs: list[PlanningResourceModelType]) -> None:
         await super().on_create(docs)
 
