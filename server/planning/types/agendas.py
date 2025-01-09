@@ -1,4 +1,3 @@
-from pydantic import Field
 from typing import Annotated
 
 from .base import BasePlanningModel
@@ -8,4 +7,4 @@ from superdesk.core.resources.validators import validate_iunique_value_async
 
 class AgendasResourceModel(BasePlanningModel):
     name: Annotated[fields.Keyword, validate_iunique_value_async("agendas", "name")]
-    is_enabled: bool = Field(default=True)
+    is_enabled: bool = True
