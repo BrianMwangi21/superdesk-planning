@@ -10,6 +10,9 @@
 
 import superdesk
 from .planning_validate import PlanningValidateResource, PlanningValidateService
+from .utils import validate_docs
+
+__all__ = ["validate_docs"]
 
 
 def init_app(app):
