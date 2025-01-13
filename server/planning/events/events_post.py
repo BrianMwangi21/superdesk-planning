@@ -27,6 +27,8 @@ from planning.common import (
     enqueue_planning_item,
     get_version_item_for_post,
 )
+
+# from planning.validate import validate_docs
 from planning.utils import try_cast_object_id, get_related_planning_for_events
 from planning.content_profiles.utils import is_post_planning_with_event_enabled, is_cancel_planning_with_event_enabled
 
@@ -90,20 +92,20 @@ class EventsPostService(EventsBaseService):
         except AssertionError:
             abort(409)
 
-    @staticmethod
-    def validate_item(doc):
-        errors = get_resource_service("planning_validator").post(
-            [{"validate_on_post": True, "type": "event", "validate": doc}]
-        )[0]
-
-        if errors:
-            # We use abort here instead of raising SuperdeskApiError.badRequestError
-            # as eve handles error responses differently between POST and PATCH methods
-            abort(400, description=errors)
+    # TODO-ASYNC: Uncomment method when service is changed to async to allow new async validate_docs function
+    # @staticmethod
+    # def validate_item(doc):
+    #     errors_list = await validate_docs([{"validate_on_post": True, "type": "event", "validate": doc}])
+    #     errors = errors_list[0]
+    #
+    #     if errors:
+    #         # We use abort here instead of raising SuperdeskApiError.badRequestError
+    #         # as eve handles error responses differently between POST and PATCH methods
+    #         abort(400, description=errors)
 
     def _post_single_event(self, doc, event):
         self.validate_post_state(doc["pubstatus"])
-        self.validate_item(event)
+        # self.validate_item(event)
         updated_event, failed_planning_ids = self.post_event(event, doc["pubstatus"], doc.get("repost_on_update"))
 
         event_type = "events:posted" if doc["pubstatus"] == POST_STATE.USABLE else "events:unposted"
@@ -136,7 +138,7 @@ class EventsPostService(EventsBaseService):
         # First we want to validate that all events can be posted
         for event in posted_events:
             self.validate_post_state(post_to_state)
-            self.validate_item(event)
+            # self.validate_item(event)
 
         # Next we perform the actual post
         updated_event = None
