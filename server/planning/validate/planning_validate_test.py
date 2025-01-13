@@ -9,7 +9,7 @@
 # at https://www.sourcefabric.org/superdesk/license
 
 from planning.tests import TestCase
-from .utils import validate_docs
+from .planning_validate import validate_docs
 
 
 class PlanningValidateServiceTest(TestCase):
