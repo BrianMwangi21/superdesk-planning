@@ -41,6 +41,8 @@ __all__ = [
     "PostStates",
     "UpdateMethods",
     "WorkflowState",
+    "ContentProfile",
+    "PlanningRelatedEventLink",
     "AgendasResourceModel",
 ]
 

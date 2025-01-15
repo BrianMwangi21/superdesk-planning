@@ -1,12 +1,12 @@
-from pydantic import Field, TypeAdapter
 from datetime import datetime
 from typing import Annotated, Any
+from pydantic import Field, model_validator
 
 from content_api.items.model import CVItem, Place
 
-from superdesk.core.elastic.mapping import json_schema_to_elastic_mapping
 from superdesk.utc import utcnow
 from superdesk.core.resources import fields, dataclass
+from superdesk.core.utils import generate_guid, GUID_NEWSML
 from superdesk.core.resources.validators import validate_data_relation_async
 
 from .event import Translation
@@ -28,11 +28,12 @@ from .common import (
 @dataclass
 class Flags:
     marked_for_not_publication: bool = False
+    # TODO: double check if we can fix this typo `overide` -> `override`
     overide_auto_assign_to_workflow: bool = False
 
 
 class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
-    guid: fields.Keyword
+    guid: Annotated[fields.Keyword, Field(default_factory=lambda: generate_guid(type=GUID_NEWSML))]
     unique_id: fields.Keyword | None = None
 
     firstcreated: datetime = Field(default_factory=utcnow)
@@ -145,3 +146,15 @@ class PlanningResourceModel(BasePlanningModel, LockFieldsMixin):
 
     # TODO-ASYNC: check why do we have `type` and `_type`
     _type: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def parse_dict(cls, values) -> dict[str, Any]:
+        if not values.get("guid") and values.get("_id"):
+            # Make sure there is a ``guid``
+            values["guid"] = values["_id"]
+        elif not values.get("_id") and values.get("guid"):
+            # Make sure there is a ``_id``
+            values["_id"] = values["guid"]
+
+        return values
