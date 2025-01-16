@@ -497,8 +497,8 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
         if post_required(updates, original.to_dict()):
             merged: EventResourceModel = original.clone_with(updates)
 
-            # TODO-ASYNC: replace when `event_post` is async
-            get_resource_service("events_post").validate_item(merged.to_dict())
+            # TODO-ASYNC: replace when `event_post` is async and validate_item is available for use
+            # get_resource_service("events_post").validate_item(merged.to_dict())
 
         # Determine if we're to convert this single event to a recurring of events
         if original.lock_action == "convert_recurring" and updates.get("dates", {}).get("recurring_rule") is not None:
