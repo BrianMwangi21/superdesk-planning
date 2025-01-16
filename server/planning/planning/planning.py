@@ -30,7 +30,7 @@ from superdesk import get_resource_service, Service, Resource
 from superdesk.errors import SuperdeskApiError
 from superdesk.utc import utcnow, utc_to_local
 from superdesk.metadata.utils import generate_guid, item_url
-from superdesk.metadata.item import GUID_NEWSML, metadata_schema, ITEM_TYPE, CONTENT_STATE
+from superdesk.metadata.item import GUID_NEWSML
 from superdesk.users.services import current_user_has_privilege
 from superdesk.notification import push_notification
 from apps.archive.common import get_user, get_auth, update_dates_for
@@ -38,7 +38,6 @@ from apps.archive.common import get_user, get_auth, update_dates_for
 from planning.errors import AssignmentApiError
 from planning.types import (
     Planning,
-    Coverage,
     Event,
     UPDATE_METHOD,
     PlanningRelatedEventLink,
@@ -52,7 +51,7 @@ from planning.common import (
     update_post_item,
     get_coverage_type_name,
     set_original_creator,
-    list_uniq_with_order,
+    unique_items_in_order,
     TEMP_ID_PREFIX,
     DEFAULT_ASSIGNMENT_PRIORITY,
     get_planning_allow_scheduled_updates,
@@ -84,17 +83,9 @@ from planning.utils import (
     get_first_related_event_id_for_planning,
     get_related_event_items_for_planning,
 )
+from .planning_utils import get_coverage_by_id
 
 logger = logging.getLogger(__name__)
-
-
-def get_coverage_by_id(
-    planning_item: Planning, coverage_id: str, field: Optional[str] = "coverage_id"
-) -> Optional[Coverage]:
-    return next(
-        (coverage for coverage in planning_item.get("coverages") or [] if coverage.get(field) == coverage_id),
-        None,
-    )
 
 
 class PlanningService(Service):
@@ -337,7 +328,7 @@ class PlanningService(Service):
 
         # Remove duplicate agendas
         if len(updates.get("agendas", [])) > 0:
-            updates["agendas"] = list_uniq_with_order(updates["agendas"])
+            updates["agendas"] = unique_items_in_order(updates["agendas"])
 
         # Validate scheduled updates
         for coverage in updates.get("coverages") or []:

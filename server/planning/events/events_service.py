@@ -67,7 +67,7 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
         are not already marked as expired.
 
         By default, items returned are:
-        - Not expired.
+        - Not already marked as expired (expired=True).
         - Have an end date `<= expiry_datetime`.
 
         If `spiked_events_only` is True, only spiked events are returned, still filtered by
@@ -164,7 +164,7 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
         if applicable, sets up planning schedules, and links events to planning items.
 
         Args:
-            events (list[EventResourceModel]): A list of event models to prepare.
+            docs (list[EventResourceModel]): A list of event models to prepare.
 
         Returns:
             None: Modifies the input list in-place.
@@ -177,9 +177,6 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
 
             if not event.language:
                 event.language = event.languages[0] if len(event.languages) > 0 else get_app_config("DEFAULT_LANGUAGE")
-
-            # TODO-ASYNC: consider moving this into base service later
-            event.original_creator = ObjectId(get_user_id()) or None
 
             # overwrite expiry date if needed
             self._overwrite_event_expiry_date(event)
@@ -839,7 +836,7 @@ class EventsAsyncService(BasePlanningAsyncService[EventResourceModel]):
         # planning_service.validate_on_update(updates, planning_item, get_user())
         await planning_service.system_update(event.planning_item, updates)
 
-        await signals.planning_update.send(updates, planning_item)
+        await signals.planning_updated.send(updates, planning_item)
 
     def _enhance_event_item(self, doc: dict[str, Any]):
         plannings = get_related_planning_for_events([doc[ID_FIELD]])

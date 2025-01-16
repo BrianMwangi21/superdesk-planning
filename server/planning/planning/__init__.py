@@ -43,8 +43,8 @@ from .planning_featured_lock import (
 from .planning_featured import PlanningFeaturedResource, PlanningFeaturedService
 from .planning_files import PlanningFilesResource, PlanningFilesService
 
-from .module import planning_resource_config, planning_history_resource_config
-from .service import PlanningAsyncService
+from .module import planning_resource_config, planning_resource_config, planning_history_resource_config
+from .planning_service import PlanningAsyncService
 from .planning_history_async_service import PlanningHistoryAsyncService
 
 
@@ -136,7 +136,7 @@ def init_app(app):
     PlanningAutosaveResource("planning_autosave", app=app, service=planning_autosave_service)
 
     # listen to async signals
-    signals.planning_update.connect(planning_history_service.on_item_updated)
+    signals.planning_updated.connect(planning_history_service.on_item_updated)
 
     app.on_inserted_planning += planning_history_service.on_item_created
     app.on_updated_planning_spike += planning_history_service.on_spike
