@@ -3,9 +3,10 @@ from copy import deepcopy
 from typing import Any
 
 from apps.validate.validate import SchemaValidator as Validator
-from superdesk import get_resource_service
 from superdesk.metadata.item import ITEM_TYPE
 from planning.content_profiles.utils import get_enabled_fields
+from planning.content_profiles import PlanningTypesAsyncService
+from planning.types import Event
 
 logger = logging.getLogger(__name__)
 REQUIRED_ERROR = "{} is a required field"
@@ -89,7 +90,7 @@ class SchemaValidator(Validator):
         pass
 
 
-def get_validator_schema(schema):
+def get_validator_schema(schema) -> dict:
     """Get schema for given data that will work with validator.
 
     - if field is required without minlength set make sure it's not empty
@@ -105,7 +106,7 @@ def get_validator_schema(schema):
     return validator_schema
 
 
-def get_filtered_validator_schema(validator, validate_on_post: bool):
+def get_filtered_validator_schema(validator, validate_on_post: bool) -> dict:
     """Get schema for a given validator, excluding fields with None values,
     and only include fields that are in enabled_fields."""
 
@@ -117,25 +118,26 @@ def get_filtered_validator_schema(validator, validate_on_post: bool):
     }
 
 
-async def get_validator(doc: dict[str, Any]):
+async def get_validator(item_type: str) -> Event | None:
     """Get validators from planning types service."""
-    return get_resource_service("planning_types").find_one(req=None, name=doc[ITEM_TYPE])
+    validator = await PlanningTypesAsyncService().find_one(req=None, name=item_type)
+    return validator.to_dict() if validator else None
 
 
-async def validate_doc(doc: dict[str, Any]):
-    validator = await get_validator(doc)
+async def validate_doc(item: dict, item_type: str, validate_on_post: bool = False) -> list:
+    validator = await get_validator(item_type)
 
     if validator is None:
-        logger.warn("Validator was not found for type:{}".format(doc[ITEM_TYPE]))
+        logger.warn("Validator was not found for type:{}".format(item_type))
         return []
 
-    validation_schema = get_filtered_validator_schema(validator, doc.get("validate_on_post", False))
+    validation_schema = get_filtered_validator_schema(validator, validate_on_post)
 
     v = SchemaValidator()
     v.allow_unknown = True
 
     try:
-        v.validate(doc["validate"], validation_schema)
+        v.validate(item, validation_schema)
     except TypeError as e:
         logger.exception('Invalid validator schema value "%s" for ' % str(e))
 
@@ -156,13 +158,15 @@ async def validate_doc(doc: dict[str, Any]):
     return response
 
 
-async def validate_docs(docs: list[dict[str, Any]]):
+async def validate_docs(docs: list[dict[str, Any]]) -> list:
     """
     Validate a list of documents asynchronously and returns a list of
     validation errors
     """
     for doc in docs:
         test_doc = deepcopy(doc)
-        doc["errors"] = await validate_doc(test_doc)
+        doc["errors"] = await validate_doc(
+            test_doc["validate"], test_doc[ITEM_TYPE], test_doc.get("validate_on_post", False)
+        )
 
     return [doc["errors"] for doc in docs]
