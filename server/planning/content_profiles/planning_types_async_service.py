@@ -62,8 +62,9 @@ class PlanningTypesAsyncService(AsyncResourceService[PlanningTypesResourceModel]
                 self._remove_unsupported_fields(default_planning_type)
                 return PlanningTypesResourceModel(**default_planning_type)
 
-            self.merge_planning_type(planning_type.to_dict(), default_planning_type)
-            return planning_type
+            planning_type_dict = planning_type.to_dict()
+            self.merge_planning_type(planning_type_dict, default_planning_type)
+            return PlanningTypesResourceModel(**planning_type_dict)
         except IndexError:
             return None
 

@@ -568,7 +568,8 @@ class EventsService(superdesk.Service):
         if post_required(updates, original):
             merged = deepcopy(original)
             merged.update(updates)
-            get_resource_service("events_post").validate_item(merged)
+            # TODO-ASYNC: replace when `event_post` is async and validate_item is available for use
+            # get_resource_service("events_post").validate_item(merged)
 
         # Determine if we're to convert this single event to a recurring
         #  of events

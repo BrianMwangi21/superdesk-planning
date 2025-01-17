@@ -9,6 +9,7 @@
 # at https://www.sourcefabric.org/superdesk/license
 
 from flask import abort
+from planning.validate import validate_docs
 from superdesk import get_resource_service, logger
 from superdesk.errors import SuperdeskApiError
 from superdesk.resource import Resource
@@ -60,13 +61,14 @@ class PlanningPostService(BaseService):
             if plan.get("event_item"):
                 event = get_resource_service("events").find_one(req=None, _id=plan.get("event_item"))
 
-            self.validate_item(plan, event, doc["pubstatus"], cancel_plan_with_event_enabled)
+            # self.validate_item(plan, event, doc["pubstatus"], cancel_plan_with_event_enabled)
 
             if not plan:
                 abort(412)
 
             if kwargs.get("related_planning"):
-                self.validate_related_item(plan)
+                pass
+                # self.validate_related_item(plan)
 
             self.validate_post_state(doc["pubstatus"])
             if event and doc["pubstatus"] == POST_STATE.USABLE:
@@ -92,33 +94,33 @@ class PlanningPostService(BaseService):
         except AssertionError:
             abort(409)
 
-    @staticmethod
-    def validate_item(doc, event, new_post_status, cancel_plan_with_event_enabled):
-        if (
-            cancel_plan_with_event_enabled
-            and new_post_status == POST_STATE.USABLE
-            and event
-            and event.get("pubstatus") == POST_STATE.CANCELLED
-        ):
-            raise SuperdeskApiError(message="Can't post the planning item as event is already unposted/cancelled.")
+    # TODO-ASYNC: Uncomment method when service is changed to async to allow new async validate_docs function
+    # @staticmethod
+    # def validate_item(doc, event, new_post_status, cancel_plan_with_event_enabled):
+    #     if (
+    #         cancel_plan_with_event_enabled
+    #         and new_post_status == POST_STATE.USABLE
+    #         and event
+    #         and event.get("pubstatus") == POST_STATE.CANCELLED
+    #     ):
+    #         raise SuperdeskApiError(message="Can't post the planning item as event is already unposted/cancelled.")
+    #
+    #     errors_list = await validate_docs([{"validate_on_post": True, "type": "planning", "validate": doc}])
+    #     errors = errors_list[0]
+    #
+    #     if errors:
+    #         # We use abort here instead of raising SuperdeskApiError.badRequestError
+    #         # as eve handles error responses differently between POST and PATCH methods
+    #         abort(400, description=errors)
 
-        errors = get_resource_service("planning_validator").post(
-            [{"validate_on_post": True, "type": "planning", "validate": doc}]
-        )[0]
-
-        if errors:
-            # We use abort here instead of raising SuperdeskApiError.badRequestError
-            # as eve handles error responses differently between POST and PATCH methods
-            abort(400, description=errors)
-
-    @staticmethod
-    def validate_related_item(doc):
-        errors = get_resource_service("planning_validator").post(
-            [{"validate_on_post": False, "type": "planning", "validate": doc}]
-        )[0]
-
-        if errors:
-            return abort(400, description=["Related planning : " + error for error in errors])
+    # TODO-ASYNC: Uncomment method when service is changed to async to allow new async validate_docs function
+    # @staticmethod
+    # def validate_related_item(doc):
+    #     errors_list = await validate_docs([{"validate_on_post": False, "type": "planning", "validate": doc}])
+    #     errors = errors_list[0]
+    #
+    #     if errors:
+    #         return abort(400, description=["Related planning : " + error for error in errors])
 
     def post_associated_event(self, event):
         """If the planning item is associated with an even that is not posted we need to post the event
