@@ -54,6 +54,7 @@ from planning.common import (
     get_max_recurrent_events,
     WORKFLOW_STATE,
     ITEM_STATE,
+    prepare_ingested_item_for_storage,
     remove_lock_information,
     format_address,
     update_post_item,
@@ -135,6 +136,7 @@ class EventsService(superdesk.Service):
         """Post an ingested item(s)"""
 
         for doc in docs:
+            prepare_ingested_item_for_storage(doc)
             self._resolve_defaults(doc)
             set_ingest_version_datetime(doc)
 
@@ -146,6 +148,9 @@ class EventsService(superdesk.Service):
 
     def patch_in_mongo(self, id, document, original) -> Optional[Dict[str, Any]]:
         """Patch an ingested item onto an existing item locally"""
+        prepare_ingested_item_for_storage(document)
+        events_history = get_resource_service("events_history")
+        events_history.on_item_updated(document, original, "ingested")
 
         set_planning_schedule(document)
         update_ingest_on_patch(document, original)
