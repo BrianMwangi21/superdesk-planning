@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 from copy import deepcopy
 
@@ -34,7 +35,7 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
             if await items.count() > 0:
                 raise SuperdeskApiError.badRequestError(message="Featured story already exists for this date.")
 
-            await self.validate_featured_attrribute(doc_dict.get("items"))
+            await self.validate_featured_attrribute(doc_dict.get("items", []))
             doc_dict["_id"] = _id
             await self.post_featured_planning(doc_dict)
             # set the author
@@ -63,7 +64,7 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
             original = {}
 
         if updates.get("posted", False):
-            await self.validate_post_status(updates.get("items", original.get("items" or [])))
+            await self.validate_post_status(updates.get("items", original.get("items", [])))
             updates["posted"] = True
             updates["last_posted_time"] = utcnow()
             updates["last_posted_by"] = str(get_user_id())
@@ -91,14 +92,14 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
             else:
                 logger.error("Failed to save planning_featured version for featured item id {}".format(plan["_id"]))
 
-    async def validate_featured_attrribute(self, planning_ids):
+    async def validate_featured_attrribute(self, planning_ids: list):
         planning_service = PlanningAsyncService()
         for planning_id in planning_ids:
             planning_item = await planning_service.find_by_id_raw(planning_id)
             if planning_item and not planning_item.get("featured"):
                 raise SuperdeskApiError.badRequestError(message="A planning item in the list is not featured.")
 
-    async def validate_post_status(self, planning_ids):
+    async def validate_post_status(self, planning_ids: list):
         planning_service = PlanningAsyncService()
         for planning_id in planning_ids:
             planning_item = await planning_service.find_by_id_raw(planning_id)
@@ -107,6 +108,6 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
                     message="Not all planning items are posted. Aborting post action."
                 )
 
-    def get_id_for_date(self, date):
+    def get_id_for_date(self, date: datetime) -> str:
         local_date = utc_to_local(get_app_config("DEFAULT_TIMEZONE"), date)
         return local_date.strftime(ID_DATE_FORMAT)
