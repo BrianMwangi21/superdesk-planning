@@ -43,9 +43,10 @@ from .planning_featured_lock import (
 from .planning_featured import PlanningFeaturedResource, PlanningFeaturedService
 from .planning_files import PlanningFilesResource, PlanningFilesService
 
-from .module import planning_resource_config, planning_resource_config, planning_history_resource_config
+from .module import planning_resource_config, planning_history_resource_config, planning_featured_resource_config
 from .planning_service import PlanningAsyncService
 from .planning_history_async_service import PlanningHistoryAsyncService
+from .planning_featured_async_service import PlanningFeaturedAsyncService
 
 
 __all__ = [
@@ -53,6 +54,8 @@ __all__ = [
     "PlanningAsyncService",
     "PlanningHistoryAsyncService",
     "planning_history_resource_config",
+    "PlanningFeaturedAsyncService",
+    "planning_featured_resource_config",
 ]
 
 
