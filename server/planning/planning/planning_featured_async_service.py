@@ -41,7 +41,7 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
 
     async def on_created(self, docs: list[PlanningFeaturedResourceModel]):
         for doc in docs:
-            await self.enqueue_published_item(doc.to_dict(), doc.to_dict())
+            await self.enqueue_published_item(doc, doc)
 
     async def on_update(self, updates: dict[str, Any], original: PlanningFeaturedResourceModel):
         await super().on_update(updates, original)
@@ -51,7 +51,7 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
         await self.post_featured_planning(PlanningFeaturedResourceModel(**updates), original)
 
     async def on_updated(self, updates: dict[str, Any], original: PlanningFeaturedResourceModel):
-        await self.enqueue_published_item(updates, original.to_dict())
+        await self.enqueue_published_item(PlanningFeaturedResourceModel(**updates), original)
 
     async def post_featured_planning(
         self, updates: PlanningFeaturedResourceModel, original: PlanningFeaturedResourceModel | None = None
@@ -62,10 +62,12 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
             updates.last_posted_time = utcnow()
             updates.last_posted_by = ObjectId(get_user_id())
 
-    async def enqueue_published_item(self, updates: dict[str, Any], original: dict[str, Any]):
-        if updates.get("posted", False):
-            plan = deepcopy(original)
-            plan.update(updates)
+    async def enqueue_published_item(
+        self, updates: PlanningFeaturedResourceModel, original: PlanningFeaturedResourceModel
+    ):
+        if updates.posted:
+            plan = deepcopy(original.to_dict())
+            plan.update(updates.to_dict())
             version, plan = get_version_item_for_post(plan)
 
             # Create an entry in the planning versions collection for this published version
