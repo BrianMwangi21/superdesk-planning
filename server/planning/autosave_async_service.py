@@ -16,6 +16,8 @@ class AutosaveAsyncService(AsyncResourceService):
             delattr(doc, "expired")
 
     async def on_delete(self, doc: EventResourceModel | PlanningResourceModel):
+        await super().on_delete(doc)
+
         if doc.type == "event":
             events_service = EventsAsyncService()
             await events_service.delete_event_files({}, doc.files)
