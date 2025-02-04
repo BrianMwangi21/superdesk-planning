@@ -9,6 +9,8 @@ class AutosaveAsyncService(AsyncResourceService):
     """Async Service class for the Autosave model."""
 
     async def on_create(self, docs: list[EventResourceModel | PlanningResourceModel]) -> None:
+        await super().on_create(docs)
+
         for doc in docs:
             self._validate(doc)
             delattr(doc, "expired")
