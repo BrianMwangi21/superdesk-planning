@@ -40,6 +40,8 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
             await self.post_featured_planning(doc)
 
     async def on_created(self, docs: list[PlanningFeaturedResourceModel]):
+        await super().on_created(docs)
+
         for doc in docs:
             await self.enqueue_published_item(doc, doc)
 
@@ -51,6 +53,7 @@ class PlanningFeaturedAsyncService(BasePlanningAsyncService[PlanningFeaturedReso
         await self.post_featured_planning(PlanningFeaturedResourceModel(**updates), original)
 
     async def on_updated(self, updates: dict[str, Any], original: PlanningFeaturedResourceModel):
+        await super().on_updated(updates, original)
         await self.enqueue_published_item(PlanningFeaturedResourceModel(**updates), original)
 
     async def post_featured_planning(

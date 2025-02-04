@@ -10,7 +10,7 @@ from superdesk.core.resources.validators import validate_data_relation_async
 
 class PlanningFeaturedResourceModel(BasePlanningModel):
     date: datetime = Field(default_factory=utcnow)
-    items: list = Field(default_factory=list)
+    items: list[str] = Field(default_factory=list)
     tz: str | None = None
     posted: bool = False
     last_posted_time: datetime | None = None
