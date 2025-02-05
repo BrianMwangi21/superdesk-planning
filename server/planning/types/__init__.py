@@ -24,6 +24,7 @@ from .published import PublishedPlanningModel
 from .enums import PostStates, UpdateMethods, WorkflowState
 from .agendas import AgendasResourceModel
 from .planning_types import PlanningTypesResourceModel
+from .planning_featured import PlanningFeaturedResourceModel
 
 
 __all__ = [
@@ -44,6 +45,7 @@ __all__ = [
     "ContentProfile",
     "PlanningRelatedEventLink",
     "AgendasResourceModel",
+    "PlanningFeaturedResourceModel",
 ]
 
 

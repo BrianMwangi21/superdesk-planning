@@ -40,17 +40,18 @@ from .planning_featured_lock import (
     PlanningFeaturedUnlockResource,
     PlanningFeaturedUnlockService,
 )
-from .planning_featured import PlanningFeaturedResource, PlanningFeaturedService
 from .planning_files import PlanningFilesResource, PlanningFilesService
 
 from .module import (
     planning_resource_config,
     planning_resource_config,
     planning_history_resource_config,
+    planning_featured_resource_config,
     planning_autosave_resource_config,
 )
 from .planning_service import PlanningAsyncService
 from .planning_history_async_service import PlanningHistoryAsyncService
+from .planning_featured_async_service import PlanningFeaturedAsyncService
 from .planning_autosave_async_service import PlanningAutosaveAsyncService
 
 
@@ -59,6 +60,8 @@ __all__ = [
     "PlanningAsyncService",
     "PlanningHistoryAsyncService",
     "planning_history_resource_config",
+    "PlanningFeaturedAsyncService",
+    "planning_featured_resource_config",
     "PlanningAutosaveAsyncService",
     "planning_autosave_resource_config",
 ]
@@ -136,9 +139,6 @@ def init_app(app):
         app=app,
         service=planning_featured_unlock_service,
     )
-
-    planning_featured_service = PlanningFeaturedService("planning_featured", backend=superdesk.get_backend())
-    PlanningFeaturedResource("planning_featured", app=app, service=planning_featured_service)
 
     planning_autosave_service = PlanningAutosaveService("planning_autosave", superdesk.get_backend())
     PlanningAutosaveResource("planning_autosave", app=app, service=planning_autosave_service)

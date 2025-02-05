@@ -15,7 +15,7 @@ from superdesk import Service, Resource
 from superdesk.utils import ListCursor
 from .events import EventsResource
 from .planning import PlanningResource
-from .planning.planning_featured import PlanningFeaturedResource
+from .types import PlanningFeaturedResourceModel
 import logging
 
 logger = logging.getLogger(__name__)
@@ -40,10 +40,10 @@ class PublishedPlanningService(Service):
             fields = resolve_embedded_fields(PlanningResource.endpoint_name, req) or []
             resolve_embedded_documents(doc.get("published_item"), PlanningResource.endpoint_name, fields)
         elif doc.get("type") == "planning_featured":
-            fields = resolve_embedded_fields(PlanningFeaturedResource.endpoint_name, req) or []
+            fields = resolve_embedded_fields(PlanningFeaturedResourceModel.model_resource_name, req) or []
             resolve_embedded_documents(
                 doc.get("published_item"),
-                PlanningFeaturedResource.endpoint_name,
+                PlanningFeaturedResourceModel.model_resource_name,
                 fields,
             )
 
