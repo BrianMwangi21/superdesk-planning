@@ -6,10 +6,11 @@ from superdesk.core.resources import (
     RestEndpointConfig,
 )
 
-from planning.types import PlanningResourceModel, PlanningHistoryResourceModel
+from planning.types import PlanningResourceModel, PlanningHistoryResourceModel, PlanningFeaturedResourceModel
 
 from .planning_service import PlanningAsyncService
 from .planning_history_async_service import PlanningHistoryAsyncService
+from .planning_featured_async_service import PlanningFeaturedAsyncService
 
 planning_resource_config: ResourceConfig = ResourceConfig(
     name="planning",
@@ -41,4 +42,11 @@ planning_history_resource_config: ResourceConfig = ResourceConfig(
         ],
     ),
     rest_endpoints=RestEndpointConfig(resource_methods=["GET"], item_methods=["GET"]),
+)
+
+planning_featured_resource_config: ResourceConfig = ResourceConfig(
+    name="planning_featured",
+    data_class=PlanningFeaturedResourceModel,
+    service=PlanningFeaturedAsyncService,
+    rest_endpoints=RestEndpointConfig(resource_methods=["GET", "POST"], item_methods=["GET", "PATCH", "PUT", "DELETE"]),
 )
