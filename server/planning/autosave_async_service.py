@@ -1,4 +1,3 @@
-from planning.events.events_service import EventsAsyncService
 from planning.types import EventResourceModel, PlanningResourceModel
 from superdesk.core.resources import AsyncResourceService
 from superdesk.errors import SuperdeskApiError
@@ -16,6 +15,8 @@ class AutosaveAsyncService(AsyncResourceService):
             delattr(doc, "expired")
 
     async def on_delete(self, doc: EventResourceModel | PlanningResourceModel):
+        from planning.events.events_service import EventsAsyncService
+
         await super().on_delete(doc)
 
         if doc.type == "event":
